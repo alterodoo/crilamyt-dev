@@ -1,0 +1,165 @@
+<odoo>
+    <data>
+        <record id="stock_picking_batch.action_report_picking_batch" model="ir.actions.report">
+            <field name="report_name">alterben_mrp_master_order.report_picking_batch_custom</field>
+            <field name="report_file">alterben_mrp_master_order.report_picking_batch_custom</field>
+            <field name="print_report_name">'Traslado por lote - ' + (object.name or '')</field>
+        </record>
+
+        <template id="report_picking_batch_custom">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="doc">
+                    <t t-set="lines" t-value="batch_lines.get(doc.id, [])"/>
+                    <t t-set="destination_label" t-value="batch_destination_labels.get(doc.id, '')"/>
+                    <t t-call="web.external_layout">
+                        <div class="page">
+                            <style>
+                                .ab-batch-header {
+                                    margin-top: 22px;
+                                    margin-bottom: 18px;
+                                    padding-top: 10px;
+                                }
+                                .ab-batch-header h2 {
+                                    margin-top: 0;
+                                    margin-bottom: 10px;
+                                    line-height: 1.15;
+                                }
+                                .ab-batch-meta {
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    margin-bottom: 14px;
+                                }
+                                .ab-batch-meta td {
+                                    padding: 4px 6px;
+                                    border: 1px solid #d9d9d9;
+                                    font-size: 11px;
+                                }
+                                .ab-batch-table {
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    font-size: 10px;
+                                }
+                                .ab-batch-table th,
+                                .ab-batch-table td {
+                                    border: 1px solid #cfcfcf;
+                                    padding: 5px 6px;
+                                    vertical-align: top;
+                                }
+                                .ab-batch-table th {
+                                    background: #f3f3f3;
+                                    text-transform: uppercase;
+                                    font-size: 9px;
+                                }
+                                .ab-barcode-box {
+                                    text-align: center;
+                                    min-width: 120px;
+                                    padding-left: 1px;
+                                    padding-right: 1px;
+                                }
+                                .ab-barcode-box img {
+                                    width: 98%;
+                                    max-width: 100%;
+                                    height: 38px;
+                                    display: block;
+                                    margin: 0 auto;
+                                }
+                                .ab-code {
+                                    font-size: 10px;
+                                    margin-top: 2px;
+                                    word-break: break-all;
+                                }
+                                .ab-col-immediate {
+                                    width: 6%;
+                                }
+                                .ab-col-measures {
+                                    width: 9%;
+                                }
+                                .ab-col-barcode {
+                                    width: 14%;
+                                }
+                                .ab-col-qty {
+                                    width: 5%;
+                                }
+                                .ab-muted {
+                                    color: #666;
+                                }
+                            </style>
+
+                            <div class="ab-batch-header">
+                                <h2>Traslado por lote</h2>
+                                <table class="ab-batch-meta">
+                                    <tr>
+                                        <td><strong>Lote:</strong> <span t-esc="doc.name"/></td>
+                                        <td><strong>Estado:</strong> <span t-esc="doc.state or ''"/></td>
+                                        <td><strong>Fecha programada:</strong> <span t-esc="doc.scheduled_date or ''"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="3">
+                                            <strong>Destino / Cliente:</strong>
+                                            <span t-esc="destination_label"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <table class="ab-batch-table">
+                                <colgroup>
+                                    <col/>
+                                    <col class="ab-col-immediate"/>
+                                    <col class="ab-col-barcode"/>
+                                    <col/>
+                                    <col class="ab-col-measures"/>
+                                    <col class="ab-col-barcode"/>
+                                    <col class="ab-col-qty"/>
+                                    <col class="ab-col-qty"/>
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th>Picking</th>
+                                        <th>Entrega</th>
+                                        <th>Barcode ubicacion</th>
+                                        <th>Producto</th>
+                                        <th>Medidas</th>
+                                        <th>Barcode producto</th>
+                                        <th>Cant. pedida</th>
+                                        <th>Cant. hecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-if="not lines">
+                                        <td colspan="8" class="text-center ab-muted">Este lote no tiene movimientos para imprimir.</td>
+                                    </tr>
+                                    <t t-foreach="lines" t-as="line">
+                                        <tr>
+                                            <td>
+                                                <div t-esc="line.get('picking').name"/>
+                                                <div class="ab-muted" t-if="line.get('origin')" t-esc="line.get('origin')"/>
+                                            </td>
+                                            <td t-esc="line.get('immediate_delivery')"/>
+                                            <td class="ab-barcode-box">
+                                                <t t-if="line.get('location_barcode')">
+                                                    <img t-att-src="'/report/barcode/?barcode_type=Code128&amp;value=%s&amp;width=220&amp;height=50&amp;humanreadable=0' % line.get('location_barcode')"/>
+                                                    <div class="ab-code" t-esc="line.get('location_barcode')"/>
+                                                </t>
+                                            </td>
+                                            <td t-esc="line.get('product_name')"/>
+                                            <td t-esc="line.get('product_measures')"/>
+                                            <td class="ab-barcode-box">
+                                                <t t-if="line.get('product_barcode')">
+                                                    <img t-att-src="'/report/barcode/?barcode_type=Code128&amp;value=%s&amp;width=220&amp;height=50&amp;humanreadable=0' % line.get('product_barcode')"/>
+                                                    <div class="ab-code" t-esc="line.get('product_barcode')"/>
+                                                </t>
+                                            </td>
+                                            <td class="text-end" t-esc="'%.2f' % (line.get('qty_ordered') or 0.0)"/>
+                                            <td class="text-end" t-esc="'%.2f' % (line.get('qty_done') or 0.0)"/>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>

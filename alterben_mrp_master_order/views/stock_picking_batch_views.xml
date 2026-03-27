@@ -1,0 +1,13 @@
+<odoo>
+    <record id="view_stock_picking_tree_inherit_alterben_batch" model="ir.ui.view">
+        <field name="name">stock.picking.tree.alterben.batch</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.vpicktree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="ab_entrega_inmediata_display" string="Entrega inmediata" optional="show"/>
+                <field name="ab_cancelled_delivery_total" string="Cant. cancelada" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

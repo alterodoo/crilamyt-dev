@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates xml:space="preserve">
+    <t t-name="alterben_mrp_master_order.PlantDashboard">
+        <div class="ab-plant-dashboard">
+            <div class="ab-dashboard-hero">
+                <div>
+                    <p class="ab-dashboard-kicker">Dashboard Planta</p>
+                    <div class="ab-dashboard-title-row">
+                        <h1>Operacion en tiempo real</h1>
+                        <button
+                            type="button"
+                            class="ab-dashboard-help-btn"
+                            t-on-click="() => this.toggleHelp()"
+                            title="Como leer el dashboard"
+                        >
+                            <span>?</span>
+                        </button>
+                    </div>
+                    <p class="ab-dashboard-subtitle">
+                        Seguimiento visual de fabricacion, carga por etapa y cruce comercial sin recargar la pagina.
+                    </p>
+                </div>
+                <div class="ab-dashboard-summary">
+                    <div class="ab-summary-chip">
+                        <span>Total WOs</span>
+                        <strong t-esc="activeSummary.total_workorders || 0"/>
+                    </div>
+                    <div class="ab-summary-chip">
+                        <span>Activas</span>
+                        <strong t-esc="activeSummary.active_workorders || 0"/>
+                    </div>
+                    <div class="ab-summary-chip">
+                        <span>En cola</span>
+                        <strong t-esc="activeSummary.queued_workorders || 0"/>
+                    </div>
+                    <div class="ab-summary-chip">
+                        <span>Atrasadas</span>
+                        <strong t-esc="activeSummary.overdue_workorders || 0"/>
+                    </div>
+                    <t t-if="activeTab and activeTab.type === 'products'">
+                        <div class="ab-summary-chip">
+                            <span>Productos</span>
+                            <strong t-esc="activeSummary.products_count || 0"/>
+                        </div>
+                        <div class="ab-summary-chip">
+                            <span>En proceso real</span>
+                            <strong t-esc="activeSummary.in_process_qty || 0"/>
+                        </div>
+                        <div class="ab-summary-chip">
+                            <span>Pendiente ventas</span>
+                            <strong t-esc="activeSummary.sales_pending_qty || 0"/>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div class="ab-summary-chip">
+                            <span>Unid. proceso</span>
+                            <strong t-esc="activeSummary.qty_in_progress || 0"/>
+                        </div>
+                        <div class="ab-summary-chip">
+                            <span>Unid. terminadas hoy</span>
+                            <strong t-esc="activeSummary.qty_finished || 0"/>
+                        </div>
+                    </t>
+                    <div class="ab-summary-chip">
+                        <span>Ult. refresh</span>
+                        <strong t-esc="activeSummary.last_refresh || '-'"/>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ab-dashboard-tabs">
+                <t t-foreach="state.payload.tabs" t-as="tab" t-key="tab.key">
+                    <button
+                        t-att-class="'ab-dashboard-tab ' + (state.activeTab === tab.key ? 'is-active' : '')"
+                        t-on-click="() => this.setTab(tab.key)"
+                    >
+                        <t t-esc="tab.label"/>
+                    </button>
+                </t>
+            </div>
+
+            <t t-if="state.helpOpen">
+                <div class="ab-dashboard-help-overlay" t-on-click="() => this.toggleHelp()">
+                    <div class="ab-dashboard-help-modal" t-on-click.stop="">
+                        <div class="ab-dashboard-help-header">
+                            <div>
+                                <h2>Como leer el dashboard</h2>
+                                <p>Guia rapida para entender que muestra cada ficha y como interpretar el avance de planta.</p>
+                            </div>
+                            <button type="button" class="ab-dashboard-help-close" t-on-click="() => this.toggleHelp()" title="Cerrar ayuda">x</button>
+                        </div>
+                        <div class="ab-dashboard-help-body">
+                            <div class="ab-help-section">
+                                <h3>Que si muestra hoy</h3>
+                                <p>Las tarjetas por etapa muestran carga operativa de workorders. No representan inventario consolidado por producto como los reportes de produccion.</p>
+                                <ul>
+                                    <li><strong>Play / Pausa / Stop:</strong> cantidad de workorders corriendo, pausadas o detenidas en esa etapa.</li>
+                                    <li><strong>En cola (WO):</strong> workorders listas o pendientes de arrancar en esa etapa.</li>
+                                    <li><strong>Atrasadas (WO):</strong> workorders vencidas respecto a su tiempo o fecha esperada.</li>
+                                    <li><strong>Unid. en proceso:</strong> carga pendiente asociada a las MOs cuyo punto actual esta en esa etapa. No significa necesariamente piezas fisicamente trabajando en ese segundo.</li>
+                                    <li><strong>WO total / MO total:</strong> cantidad de workorders y ordenes de fabricacion asociadas a la etapa.</li>
+                                    <li><strong>Eficiencia:</strong> comparacion agregada entre duracion real y duracion esperada en la etapa.</li>
+                                </ul>
+                            </div>
+                            <div class="ab-help-section">
+                                <h3>Como ver productos y estado</h3>
+                                <p>Pasa el mouse sobre las barras de <strong>Pendiente</strong>, <strong>Listo</strong>, <strong>En espera</strong> y <strong>Terminado</strong>. Ahi se abre un detalle con los productos que hoy estan cayendo en ese estado dentro de esa etapa y la cantidad asociada.</p>
+                            </div>
+                            <div class="ab-help-section">
+                                <h3>Como ver si la etapa va bien de tiempo</h3>
+                                <p>Debajo de <strong>Disponibilidad de MP</strong> aparece la comparacion <strong>Real/u</strong> vs <strong>Esperado/u</strong>.</p>
+                                <ul>
+                                    <li>Si el real esta por debajo o cerca del esperado, la etapa va bien.</li>
+                                    <li>Si el real esta muy por encima del esperado, la etapa va lenta y esa tarjeta se pone en peor condicion.</li>
+                                    <li>Esto hoy se mide a nivel de etapa, no por producto individual.</li>
+                                </ul>
+                            </div>
+                            <div class="ab-help-section">
+                                <h3>Productos</h3>
+                                <p>La pestana <strong>Productos</strong> si cruza el avance productivo por producto con ventas pendientes. Ahi la columna <strong>En proceso</strong> usa la misma logica depurada de los reportes, no la logica operativa por workorder de las tarjetas.</p>
+                            </div>
+                            <div class="ab-help-section">
+                                <h3>Que no debes asumir</h3>
+                                <p>Una tarjeta no te dice por si sola que una pieza puntual va bien o mal en tiempo. Hoy el tiempo se resume por etapa y el detalle de producto se ve por estado o en la pestana de productos.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+
+            <t t-if="state.loading">
+                <div class="ab-dashboard-loading">Cargando dashboard...</div>
+            </t>
+
+            <t t-if="!state.loading and activeTab and activeTab.type === 'stages'">
+                <div class="ab-stage-grid">
+                    <t t-foreach="visibleStageCards" t-as="card" t-key="card.key">
+                        <section class="ab-stage-card" t-att-style="'--stage-accent:' + card.color">
+                            <div class="ab-stage-header">
+                                <div>
+                                    <p class="ab-stage-label" t-esc="card.label"/>
+                                </div>
+                                <div class="ab-stage-head-metrics">
+                                    <div class="ab-stage-badge status-play" t-att-title="'En ejecucion: ' + (card.wo_running || 0)">
+                                        <span class="ab-stage-status-icon"/>
+                                        <div>
+                                            <span>En ejecucion</span>
+                                            <strong t-esc="card.wo_running || 0"/>
+                                        </div>
+                                    </div>
+                                    <div class="ab-stage-badge status-pause" t-att-title="'Pausadas: ' + (card.wo_paused || 0)">
+                                        <span class="ab-stage-status-icon"/>
+                                        <div>
+                                            <span>Pausadas</span>
+                                            <strong t-esc="card.wo_paused || 0"/>
+                                        </div>
+                                    </div>
+                                    <div class="ab-stage-badge status-stop" t-att-title="'Detenidas: ' + (card.wo_stopped || 0)">
+                                        <span class="ab-stage-status-icon"/>
+                                        <div>
+                                            <span>Detenidas</span>
+                                            <strong t-esc="card.wo_stopped || 0"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ab-stage-kpis">
+                                <div class="ab-kpi-card icon-wo">
+                                    <span>En cola (WO)</span>
+                                    <strong t-esc="card.queued"/>
+                                </div>
+                                <div class="ab-kpi-card icon-wo">
+                                    <span>Atrasadas (WO)</span>
+                                    <strong t-esc="card.overdue"/>
+                                </div>
+                                <div class="ab-kpi-card icon-unit">
+                                    <span>Unid. en proceso</span>
+                                    <strong t-esc="card.qty_in_progress"/>
+                                </div>
+                                <div class="ab-kpi-card icon-wo">
+                                    <span>WO total</span>
+                                    <strong t-esc="card.total"/>
+                                </div>
+                                <div class="ab-kpi-card icon-mo">
+                                    <span>MO total</span>
+                                    <strong t-esc="card.mo_total"/>
+                                </div>
+                                <div class="ab-kpi-card icon-eff">
+                                    <span>Eficiencia (%)</span>
+                                    <strong t-esc="(card.efficiency_ratio || 0) + '%'"/>
+                                </div>
+                            </div>
+
+                            <div class="ab-stage-bars">
+                                <div class="ab-stage-bar-row ab-hover-anchor">
+                                    <label>Pendiente</label>
+                                    <div class="ab-stage-bar-track">
+                                        <div class="ab-stage-bar pending" t-att-style="this.getCardBarStyle(card, 'pending')"></div>
+                                    </div>
+                                    <span t-esc="card.state_counts.pending"/>
+                                    <div class="ab-hover-popover">
+                                        <div class="ab-popover-title">Pendiente</div>
+                                        <div class="ab-popover-subtitle" t-esc="card.label + ' | ' + card.state_counts.pending + ' workorders'"/>
+                                        <t t-if="card.state_products.pending.length">
+                                            <div class="ab-popover-list">
+                                                <t t-foreach="card.state_products.pending" t-as="item" t-key="item.product_id">
+                                                    <div class="ab-popover-item">
+                                                        <strong t-esc="item.product_name"/>
+                                                        <small t-esc="'Cantidad: ' + item.qty"/>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="ab-popover-empty">Sin productos registrados en este estado.</div>
+                                        </t>
+                                    </div>
+                                </div>
+                                <div class="ab-stage-bar-row ab-hover-anchor">
+                                    <label>Listo</label>
+                                    <div class="ab-stage-bar-track">
+                                        <div class="ab-stage-bar ready" t-att-style="this.getCardBarStyle(card, 'ready')"></div>
+                                    </div>
+                                    <span t-esc="card.state_counts.ready"/>
+                                    <div class="ab-hover-popover">
+                                        <div class="ab-popover-title">Listo</div>
+                                        <div class="ab-popover-subtitle" t-esc="card.label + ' | ' + card.state_counts.ready + ' workorders'"/>
+                                        <t t-if="card.state_products.ready.length">
+                                            <div class="ab-popover-list">
+                                                <t t-foreach="card.state_products.ready" t-as="item" t-key="item.product_id">
+                                                    <div class="ab-popover-item">
+                                                        <strong t-esc="item.product_name"/>
+                                                        <small t-esc="'Cantidad: ' + item.qty"/>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="ab-popover-empty">Sin productos registrados en este estado.</div>
+                                        </t>
+                                    </div>
+                                </div>
+                                <div class="ab-stage-bar-row ab-hover-anchor">
+                                    <label>En espera</label>
+                                    <div class="ab-stage-bar-track">
+                                        <div class="ab-stage-bar waiting" t-att-style="this.getCardBarStyle(card, 'waiting')"></div>
+                                    </div>
+                                    <span t-esc="card.state_counts.waiting"/>
+                                    <div class="ab-hover-popover">
+                                        <div class="ab-popover-title">En espera</div>
+                                        <div class="ab-popover-subtitle" t-esc="card.label + ' | ' + card.state_counts.waiting + ' workorders'"/>
+                                        <t t-if="card.state_products.waiting.length">
+                                            <div class="ab-popover-list">
+                                                <t t-foreach="card.state_products.waiting" t-as="item" t-key="item.product_id">
+                                                    <div class="ab-popover-item">
+                                                        <strong t-esc="item.product_name"/>
+                                                        <small t-esc="'Cantidad: ' + item.qty"/>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="ab-popover-empty">Sin productos registrados en este estado.</div>
+                                        </t>
+                                    </div>
+                                </div>
+                                <div class="ab-stage-bar-row ab-hover-anchor">
+                                    <label>Terminado</label>
+                                    <div class="ab-stage-bar-track">
+                                        <div class="ab-stage-bar done" t-att-style="this.getCardBarStyle(card, 'done')"></div>
+                                    </div>
+                                    <span t-esc="card.state_counts.done"/>
+                                    <div class="ab-hover-popover">
+                                        <div class="ab-popover-title">Terminado</div>
+                                        <div class="ab-popover-subtitle" t-esc="card.label + ' | ' + card.state_counts.done + ' workorders'"/>
+                                        <t t-if="card.state_products.done.length">
+                                            <div class="ab-popover-list">
+                                                <t t-foreach="card.state_products.done" t-as="item" t-key="item.product_id">
+                                                    <div class="ab-popover-item">
+                                                        <strong t-esc="item.product_name"/>
+                                                        <small t-esc="'Cantidad: ' + item.qty"/>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </t>
+                                        <t t-else="">
+                                            <div class="ab-popover-empty">Sin productos registrados en este estado.</div>
+                                        </t>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ab-stage-trend">
+                                <div class="ab-stage-trend-title">
+                                    <span>Disponibilidad de MP</span>
+                                    <small t-att-class="'ab-duration-indicator ' + (card.duration_status || 'neutral')">
+                                        <t t-esc="'Real/u ' + (card.avg_duration || 0) + ' min | Esperado/u ' + (card.avg_expected || 0)"/>
+                                    </small>
+                                </div>
+                                <t t-set="donutSegments" t-value="this.getDonutSegments(card)"/>
+                                <t t-if="donutSegments.length">
+                                    <div class="ab-donut-wrap">
+                                        <div class="ab-donut-chart">
+                                            <svg viewBox="0 0 100 100" class="ab-donut-svg">
+                                                <circle cx="50" cy="50" r="34" class="ab-donut-base"/>
+                                                <t t-foreach="donutSegments" t-as="segment" t-key="segment.key">
+                                                    <path
+                                                        class="ab-donut-segment"
+                                                        t-att-d="segment.path"
+                                                        t-att-stroke="segment.color"
+                                                        t-att-title="segment.label + ': ' + segment.value"
+                                                    />
+                                                </t>
+                                            </svg>
+                                            <div class="ab-donut-center">
+                                                <strong t-esc="(card.material_summary.ready_percent || 0) + '%'"/>
+                                                <span>MP lista</span>
+                                            </div>
+                                        </div>
+                                        <div class="ab-donut-legend">
+                                            <t t-foreach="donutSegments" t-as="segment" t-key="segment.key">
+                                                <div class="ab-donut-legend-item">
+                                                    <span class="ab-donut-dot" t-att-style="'background:' + segment.color"></span>
+                                                    <label t-esc="segment.label"/>
+                                                    <strong t-esc="segment.value"/>
+                                                </div>
+                                            </t>
+                                            <div class="ab-donut-legend-item is-meta">
+                                                <span class="ab-donut-dot meta"></span>
+                                                <label>Comp. faltantes</label>
+                                                <strong t-esc="card.material_summary.missing_components || 0"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <t t-if="card.material_summary.top_missing_materials.length">
+                                        <div class="ab-material-missing">
+                                            <div class="ab-material-missing-title">Faltantes criticos</div>
+                                            <t t-foreach="card.material_summary.top_missing_materials" t-as="item" t-key="item.product_name">
+                                                <div class="ab-material-missing-item">
+                                                    <span t-esc="item.product_name"/>
+                                                    <strong t-esc="'' + item.short_qty + ' ' + (item.uom || '')"/>
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </t>
+                                </t>
+                                <t t-else="">
+                                    <div class="ab-product-line-empty">Sin MOs abiertas para evaluar materia prima en esta etapa.</div>
+                                </t>
+                            </div>
+                        </section>
+                    </t>
+                </div>
+
+                <t t-if="activeTab.unmapped_samples and activeTab.unmapped_samples.length">
+                    <div class="ab-dashboard-note">
+                        <strong>Operaciones no mapeadas:</strong>
+                        <span t-esc="activeTab.unmapped_samples.join(', ')"/>
+                    </div>
+                </t>
+            </t>
+
+            <t t-if="!state.loading and activeTab and activeTab.type === 'products'">
+                <div class="ab-products-panel">
+                    <div class="ab-products-header">
+                        <div>
+                            <h2>Productos en fabricacion</h2>
+                            <p>Visibilidad por producto con avance productivo, etapas abiertas y cruce contra ventas pendientes.</p>
+                        </div>
+                        <div class="ab-products-filters">
+                            <input
+                                type="text"
+                                class="ab-filter-input"
+                                placeholder="Buscar producto o codigo"
+                                t-att-value="state.productQuery"
+                                t-on-input="(ev) => this.setProductQuery(ev.target.value)"
+                            />
+                            <select
+                                class="ab-filter-select"
+                                t-att-value="state.productStage"
+                                t-on-change="(ev) => this.setProductStage(ev.target.value)"
+                            >
+                                <option value="">Todas las etapas</option>
+                                <t t-foreach="activeTab.stage_options || []" t-as="stageOption" t-key="stageOption.key">
+                                    <option t-att-value="stageOption.key" t-esc="stageOption.label"/>
+                                </t>
+                            </select>
+                            <select
+                                class="ab-filter-select"
+                                t-att-value="state.productSegment"
+                                t-on-change="(ev) => this.setProductSegment(ev.target.value)"
+                            >
+                                <option value="">Todas las familias</option>
+                                <option value="m_grandes">Marcas grandes</option>
+                                <option value="m_pequenas">Marcas pequenas</option>
+                                <option value="estructural">Estructural</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="ab-products-table-wrap">
+                        <table class="ab-products-table">
+                            <thead>
+                                <tr>
+                                    <th>Codigo</th>
+                                    <th>Producto</th>
+                                    <th>Familia</th>
+                                    <th>Categoria</th>
+                                    <th>MO</th>
+                                    <th>Plan</th>
+                                    <th>Producido</th>
+                                    <th>En proceso</th>
+                                    <th>Pend. ventas</th>
+                                    <th>Cobertura</th>
+                                    <th>Activas</th>
+                                    <th>En cola</th>
+                                    <th>Bloq.</th>
+                                    <th>Atrasadas</th>
+                                    <th>Etapas abiertas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="filteredProductRows" t-as="row" t-key="row.product_id">
+                                    <tr t-att-class="'risk-' + row.risk_level" t-att-title="this.getProductRowTooltip(row)">
+                                        <td class="code-cell" t-esc="row.default_code || '-'"/>
+                                        <td>
+                                            <strong t-esc="row.product_name"/>
+                                        </td>
+                                        <td>
+                                            <span class="ab-pill" t-att-class="'family-' + row.family" t-esc="row.family"/>
+                                        </td>
+                                        <td t-esc="row.category_name || '-'"/>
+                                        <td t-esc="row.production_count"/>
+                                        <td t-esc="row.planned_qty"/>
+                                        <td t-esc="row.produced_qty"/>
+                                        <td t-esc="row.in_process_qty"/>
+                                        <td t-esc="row.sales_pending_qty"/>
+                                        <td t-esc="(row.coverage_percent || 0) + '%'"/>
+                                        <td t-esc="row.active_workorders"/>
+                                        <td t-esc="row.queued_workorders"/>
+                                        <td t-esc="row.blocked_workorders"/>
+                                        <td t-esc="row.overdue_workorders"/>
+                                        <td class="stage-cell" t-esc="row.open_stages"/>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>

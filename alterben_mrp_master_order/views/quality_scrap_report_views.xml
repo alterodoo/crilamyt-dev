@@ -1,0 +1,176 @@
+<odoo>
+  <data>
+    <record id="view_report_quality_scrap_form" model="ir.ui.view">
+      <field name="name">mrp.report.quality.scrap.form</field>
+      <field name="model">mrp.report.quality.scrap</field>
+      <field name="arch" type="xml">
+        <form string="Desechos y Calidad">
+          <header>
+            <button name="action_generate" type="object" string="Generar reporte" class="btn-primary"/>
+            <button name="action_open_lines" type="object" string="Ver lista" class="btn-secondary"/>
+            <button name="action_open_graph" type="object" string="Ver grafica" class="btn-secondary"/>
+          </header>
+          <sheet>
+            <div class="o_row">
+              <div class="o_col-6">
+                <group>
+                  <group>
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                    <field name="product_ids" widget="many2many_tags"/>
+                  </group>
+                  <group>
+                    <field name="categ_ids" widget="many2many_tags"/>
+                    <field name="operation_filter"/>
+                  </group>
+                </group>
+              </div>
+              <div class="o_col-6">
+                <group>
+                  <field name="total_records" readonly="1"/>
+                  <field name="total_linked" readonly="1"/>
+                  <field name="total_alert_only" readonly="1"/>
+                  <field name="total_scrap_only" readonly="1"/>
+                  <field name="total_scrap_qty" readonly="1"/>
+                </group>
+              </div>
+            </div>
+            <field name="line_ids">
+              <tree create="false" edit="false" limit="100">
+                <field name="row_number" string="#" readonly="1" width="40"/>
+                <field name="event_date" optional="show"/>
+                <field name="entry_type" optional="show"/>
+                <field name="quality_alert_id" optional="show"/>
+                <field name="scrap_id" optional="show"/>
+                <field name="product_id" optional="show"/>
+                <field name="categ_id" optional="hide"/>
+                <field name="production_id" optional="show"/>
+                <field name="workorder_id" optional="show"/>
+                <field name="master_order_id" optional="hide"/>
+                <field name="pedido_original" optional="show"/>
+                <field name="origin_ref" optional="show"/>
+                <field name="operation_name" optional="show"/>
+                <field name="transfer_name" optional="show"/>
+                <field name="destination_location_name" optional="show"/>
+                <field name="destination_type" optional="show"/>
+                <field name="quality_stage_name" optional="hide"/>
+                <field name="quality_reason_name" optional="hide"/>
+                <field name="quality_team_name" optional="hide"/>
+                <field name="quality_user_name" optional="hide"/>
+                <field name="quality_tag_names" optional="show"/>
+                <field name="alert_title" optional="hide"/>
+                <field name="alert_name" optional="hide"/>
+                <field name="scrap_origin_name" optional="hide"/>
+                <field name="quality_studio_operacion" optional="hide"/>
+                <field name="scrap_studio_operacion" optional="hide"/>
+                <field name="scrap_state" optional="hide"/>
+                <field name="scrap_qty" sum="Total" optional="show"/>
+                <field name="uom_id" optional="hide"/>
+                <field name="location_name" optional="hide"/>
+                <field name="scrap_location_name" optional="hide"/>
+              </tree>
+            </field>
+          </sheet>
+        </form>
+      </field>
+    </record>
+
+    <record id="view_report_quality_scrap_line_tree" model="ir.ui.view">
+      <field name="name">mrp.report.quality.scrap.entry.tree</field>
+      <field name="model">mrp.report.quality.scrap.entry</field>
+      <field name="arch" type="xml">
+        <tree create="false" edit="false" limit="200">
+          <field name="row_number" string="#" readonly="1" width="40"/>
+          <field name="event_date" optional="show"/>
+          <field name="entry_type" optional="show"/>
+          <field name="quality_alert_id" optional="show"/>
+          <field name="scrap_id" optional="show"/>
+          <field name="product_id" optional="show"/>
+          <field name="categ_id" optional="hide"/>
+          <field name="production_id" optional="show"/>
+          <field name="workorder_id" optional="show"/>
+          <field name="master_order_id" optional="hide"/>
+          <field name="pedido_original" optional="show"/>
+          <field name="origin_ref" optional="show"/>
+          <field name="operation_name" optional="show"/>
+          <field name="transfer_name" optional="show"/>
+          <field name="destination_location_name" optional="show"/>
+          <field name="destination_type" optional="show"/>
+          <field name="quality_stage_name" optional="hide"/>
+          <field name="quality_reason_name" optional="hide"/>
+          <field name="quality_team_name" optional="hide"/>
+          <field name="quality_user_name" optional="hide"/>
+          <field name="quality_tag_names" optional="show"/>
+          <field name="alert_title" optional="hide"/>
+          <field name="alert_name" optional="hide"/>
+          <field name="scrap_origin_name" optional="hide"/>
+          <field name="quality_studio_operacion" optional="hide"/>
+          <field name="scrap_studio_operacion" optional="hide"/>
+          <field name="scrap_state" optional="hide"/>
+          <field name="scrap_qty" sum="Total" optional="show"/>
+          <field name="uom_id" optional="hide"/>
+          <field name="location_name" optional="hide"/>
+          <field name="scrap_location_name" optional="hide"/>
+        </tree>
+      </field>
+    </record>
+
+    <record id="view_report_quality_scrap_line_search" model="ir.ui.view">
+      <field name="name">mrp.report.quality.scrap.entry.search</field>
+      <field name="model">mrp.report.quality.scrap.entry</field>
+      <field name="arch" type="xml">
+        <search string="Buscar desechos y calidad">
+          <field name="product_id"/>
+          <field name="categ_id"/>
+          <field name="production_id"/>
+          <field name="workorder_id"/>
+          <field name="pedido_original"/>
+          <field name="origin_ref"/>
+          <field name="operation_name"/>
+          <field name="transfer_name"/>
+          <field name="destination_type"/>
+          <field name="quality_tag_names"/>
+          <field name="quality_alert_id"/>
+          <field name="scrap_id"/>
+          <filter string="Vinculados" name="filter_linked" domain="[('entry_type', '=', 'linked')]"/>
+          <filter string="Solo alertas" name="filter_alert_only" domain="[('entry_type', '=', 'alert_only')]"/>
+          <filter string="Solo desechos" name="filter_scrap_only" domain="[('entry_type', '=', 'scrap_only')]"/>
+          <group expand="0" string="Agrupar por">
+            <filter string="Operacion" name="group_operation" context="{'group_by': 'operation_name'}"/>
+            <filter string="Producto" name="group_product" context="{'group_by': 'product_id'}"/>
+            <filter string="Categoria" name="group_category" context="{'group_by': 'categ_id'}"/>
+            <filter string="Tipo" name="group_type" context="{'group_by': 'entry_type'}"/>
+            <filter string="MO" name="group_mo" context="{'group_by': 'production_id'}"/>
+          </group>
+        </search>
+      </field>
+    </record>
+
+    <record id="view_report_quality_scrap_line_graph" model="ir.ui.view">
+      <field name="name">mrp.report.quality.scrap.entry.graph</field>
+      <field name="model">mrp.report.quality.scrap.entry</field>
+      <field name="arch" type="xml">
+        <graph string="Desechos vs Alertas" type="bar" stacked="True">
+          <field name="operation_name" type="row"/>
+          <field name="alert_count" type="measure"/>
+          <field name="scrap_count" type="measure"/>
+          <field name="scrap_qty" type="measure"/>
+        </graph>
+      </field>
+    </record>
+
+    <record id="action_report_quality_scrap" model="ir.actions.act_window">
+      <field name="name">Desechos y Calidad</field>
+      <field name="res_model">mrp.report.quality.scrap</field>
+      <field name="view_mode">form</field>
+      <field name="view_id" ref="view_report_quality_scrap_form"/>
+      <field name="target">current</field>
+    </record>
+
+    <menuitem id="menu_mrp_master_report_quality_scrap"
+              name="Desechos y Calidad"
+              parent="alterben_mrp_master_order.menu_mrp_master_reports"
+              sequence="50"
+              action="action_report_quality_scrap"/>
+  </data>
+</odoo>

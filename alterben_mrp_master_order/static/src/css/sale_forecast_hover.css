@@ -1,0 +1,313 @@
+.ab-sale-forecast-anchor {
+  cursor: help;
+}
+
+th[data-name="ab_hover_line_id"],
+td[data-name="ab_hover_line_id"] {
+  display: none !important;
+}
+
+.ab-forecast-detail-btn {
+  color: #2a6f97 !important;
+}
+
+.ab-forecast-detail {
+  padding: 4px 2px 8px;
+  max-width: 100%;
+}
+
+.ab-fd-header {
+  border-bottom: 1px solid #e8dfc8;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+}
+
+.ab-fd-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.ab-fd-subtitle {
+  color: #7a6e53;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.ab-fd-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.ab-fd-kpi {
+  background: #f7f2e6;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.ab-fd-kpi span {
+  color: #7a6e53;
+  display: block;
+  font-size: 11px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.ab-fd-kpi strong {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.ab-fd-kpi.is-highlight {
+  background: #e7f5ea;
+  color: #1e5a2f;
+}
+
+.ab-fd-note {
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.ab-fd-section {
+  margin-top: 14px;
+}
+
+.ab-fd-section-title {
+  color: #7a6e53;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.ab-fd-card {
+  background: #fbf8ef;
+  border: 1px solid #efe6d4;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  padding: 10px;
+}
+
+.ab-fd-card.is-current {
+  background: #eef8f1;
+  border-color: #86b39a;
+}
+
+.ab-fd-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.ab-fd-card-title span {
+  color: #6a604a;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.ab-fd-card-line,
+.ab-fd-subline,
+.ab-fd-empty {
+  color: #514834;
+  font-size: 12px;
+  margin-top: 3px;
+  word-break: break-word;
+}
+
+.ab-fd-sublist {
+  border-top: 1px dashed #e5dcc7;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.ab-fd-subline.is-empty,
+.ab-fd-empty {
+  color: #7a6e53;
+}
+
+.ab-forecast-modal-wrap {
+  width: 100%;
+}
+
+.ab-forecast-modal-wrap .o_field_html,
+.ab-forecast-modal-wrap .o_readonly_modifier,
+.ab-forecast-modal-wrap .note-editable,
+.ab-forecast-modal-wrap .o_field_widget {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.modal .modal-dialog:has(.ab-forecast-detail) {
+  max-width: min(1180px, 96vw) !important;
+  width: min(1180px, 96vw) !important;
+}
+
+.modal .ab-forecast-detail {
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .ab-fd-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ab-sale-forecast-popover {
+  position: absolute;
+  z-index: 1100;
+  width: min(520px, calc(100vw - 24px));
+  background: #fffef8;
+  border: 1px solid #d9d1bb;
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(77, 63, 32, 0.18);
+  color: #2f281b;
+  padding: 14px;
+}
+
+.ab-sale-forecast-popover.is-loading {
+  width: 300px;
+}
+
+.ab-forecast-loading {
+  font-size: 13px;
+  color: #5f563f;
+}
+
+.ab-forecast-loading.is-error {
+  color: #9f2f2f;
+}
+
+.ab-forecast-header {
+  border-bottom: 1px solid #e8dfc8;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+}
+
+.ab-forecast-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.ab-forecast-subtitle {
+  font-size: 12px;
+  color: #7a6e53;
+  margin-top: 2px;
+}
+
+.ab-forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ab-forecast-kpi {
+  background: #f7f2e6;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.ab-forecast-kpi span {
+  display: block;
+  font-size: 11px;
+  color: #7a6e53;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+
+.ab-forecast-kpi strong {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ab-forecast-kpi.is-highlight {
+  background: #e7f5ea;
+  color: #1e5a2f;
+}
+
+.ab-forecast-legend {
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.ab-forecast-section {
+  margin-top: 12px;
+}
+
+.ab-forecast-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #7a6e53;
+  margin-bottom: 6px;
+}
+
+.ab-forecast-item {
+  background: #fbf8ef;
+  border: 1px solid #efe6d4;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 6px;
+}
+
+.ab-forecast-item.is-current {
+  border-color: #86b39a;
+  background: #eef8f1;
+}
+
+.ab-forecast-item-title {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ab-forecast-item-title span {
+  font-weight: 400;
+  color: #6a604a;
+  margin-left: 4px;
+}
+
+.ab-forecast-item-meta {
+  font-size: 12px;
+  color: #514834;
+  margin-top: 2px;
+}
+
+.ab-forecast-sublist {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #e5dcc7;
+}
+
+.ab-forecast-subitem {
+  font-size: 11px;
+  color: #635840;
+  margin-top: 2px;
+}
+
+.ab-forecast-subitem.is-empty,
+.ab-forecast-empty {
+  font-size: 12px;
+  color: #7a6e53;
+}
+
+@media (max-width: 768px) {
+  .ab-sale-forecast-popover {
+    position: fixed;
+    left: 12px !important;
+    right: 12px;
+    top: 12px !important;
+    width: auto;
+    max-height: calc(100vh - 24px);
+    overflow: auto;
+  }
+
+  .ab-forecast-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

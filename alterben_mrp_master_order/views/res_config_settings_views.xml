@@ -1,0 +1,31 @@
+<odoo>
+    <data>
+        <record id="view_res_config_settings_ab_master_order_inherit" model="ir.ui.view">
+            <field name="name">res.config.settings.view.form.ab.master.order.inherit</field>
+            <field name="model">res.config.settings</field>
+            <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form" position="inside">
+                    <app string="Alterben" name="alterben_master_order_settings">
+                        <block title="Ventas">
+                            <setting id="ab_avoid_negative_invoice_lines_from_returns_setting"
+                                     string="Evitar negativos en facturas por devoluciones"
+                                     help="Si se activa, las devoluciones no arrastraran lineas negativas al crear factura desde la orden de venta.">
+                                <field name="ab_avoid_negative_invoice_lines_from_returns"/>
+                            </setting>
+                        </block>
+                        <block title="Inventario">
+                            <setting id="blocked_source_location_ids_setting"
+                                     string="Bloquear salida de productos desde estas bodegas"
+                                     help="Impide validar pickings cuando la ubicación origen sea una bodega padre configurada aquí. Los movimientos deben salir desde ubicaciones hijas/perchas.">
+                                <field name="blocked_source_location_ids"
+                                       widget="many2many_tags"
+                                       options="{'no_create': True, 'no_create_edit': True}"/>
+                            </setting>
+                        </block>
+                    </app>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,219 @@
+<odoo>
+    <data>
+        <record id="view_stock_move_pending_delivery_tree" model="ir.ui.view">
+            <field name="name">stock.move.pending.delivery.tree</field>
+            <field name="model">stock.move</field>
+            <field name="arch" type="xml">
+                <tree string="Pedidos pendientes de entrega"
+                      create="false"
+                      delete="false"
+                      decoration-success="ab_dispatch_status == 'ready'"
+                      decoration-danger="ab_dispatch_status == 'blocked'"
+                      default_order="ab_delivery_date asc, ab_sale_order_id asc, picking_id asc, id asc">
+                    <header>
+                        <button name="action_create_pending_delivery_batch"
+                                type="object"
+                                string="Crear Batch"
+                                class="btn-primary"/>
+                        <button name="action_reserve_pending_delivery"
+                                type="object"
+                                string="Reservar"/>
+                        <button name="action_unreserve_pending_delivery"
+                                type="object"
+                                string="Liberar Reserva"/>
+                    </header>
+                    <button name="action_open_pending_delivery_forecast_detail"
+                            type="object"
+                            icon="fa-search-plus"
+                            title="Ver detalle de disponibilidad"
+                            class="btn-link"/>
+                    <button name="action_reserve_pending_delivery"
+                            type="object"
+                            string="Reservar"
+                            class="btn-link"
+                            invisible="ab_qty_reserved &gt; 0 or ab_qty_pending &lt;= 0"/>
+                    <button name="action_unreserve_pending_delivery"
+                            type="object"
+                            string="Liberar"
+                            class="btn-link"
+                            invisible="ab_qty_reserved &lt;= 0"/>
+                    <button name="action_open_cancel_delivery_wizard"
+                            type="object"
+                            string="Cancelar"
+                            class="btn-link"
+                            invisible="ab_qty_pending &lt;= 0"/>
+                    <button name="action_view_delivery_cancellations"
+                            type="object"
+                            string="Historial"
+                            class="btn-link"
+                            invisible="ab_cancelled_delivery_qty &lt;= 0"/>
+                    <field name="ab_sale_order_id" optional="show"/>
+                    <button name="action_open_pending_delivery_sale_order"
+                            type="object"
+                            icon="fa-external-link"
+                            title="Abrir orden de venta"
+                            class="btn-link"
+                            invisible="ab_sale_order_id == False"/>
+                    <field name="picking_id" string="Transferencia" optional="show"/>
+                    <button name="action_open_pending_delivery_picking"
+                            type="object"
+                            icon="fa-external-link"
+                            title="Abrir transferencia"
+                            class="btn-link"
+                            invisible="picking_id == False"/>
+                    <field name="ab_batch_id" optional="show"/>
+                    <button name="action_open_pending_delivery_batch"
+                            type="object"
+                            icon="fa-external-link"
+                            title="Abrir batch"
+                            class="btn-link"
+                            invisible="ab_batch_id == False"/>
+                    <field name="ab_customer_id" optional="show"/>
+                    <field name="ab_customer_city" optional="show"/>
+                    <field name="company_id" column_invisible="1"/>
+                    <field name="product_uom_category_id" column_invisible="1"/>
+                    <field name="product_id" optional="show"/>
+                    <field name="ab_stock_on_hand" sum="Total" optional="hide"/>
+                    <field name="ab_stock_reserved_total" sum="Total" optional="hide"/>
+                    <field name="ab_stock_caf" sum="Total" optional="hide"/>
+                    <field name="ab_stock_available_net" sum="Total" optional="show"/>
+                    <field name="ab_dispatch_status" widget="badge" optional="show"/>
+                    <field name="product_uom_qty" string="Cant. pedida" sum="Total" optional="show"/>
+                    <field name="ab_cancelled_delivery_qty" sum="Total cancelado" optional="show"/>
+                    <field name="ab_qty_reserved" sum="Total reservado" optional="show"/>
+                    <field name="ab_qty_pending" sum="Total pendiente" optional="show"/>
+                    <field name="ab_qty_done_display" sum="Total hecho" optional="hide"/>
+                    <field name="product_uom" optional="hide"/>
+                    <field name="ab_reservation_status" optional="show"/>
+                    <field name="create_date" string="Fecha creacion" optional="hide"/>
+                    <field name="ab_sale_commitment_date" optional="show"/>
+                    <field name="ab_delivery_date" optional="show"/>
+                    <field name="ab_picking_scheduled_date" optional="hide"/>
+                    <field name="date_deadline" optional="hide"/>
+                    <field name="state" optional="hide"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="view_stock_move_pending_delivery_search" model="ir.ui.view">
+            <field name="name">stock.move.pending.delivery.search</field>
+            <field name="model">stock.move</field>
+            <field name="arch" type="xml">
+                <search string="Pedidos pendientes de entrega">
+                    <field name="ab_sale_order_id"/>
+                    <field name="ab_customer_id"/>
+                    <field name="ab_customer_city"/>
+                    <field name="product_id"/>
+                    <field name="picking_id"/>
+                    <field name="ab_batch_id"/>
+                    <field name="ab_delivery_date"/>
+                    <field name="ab_sale_commitment_date"/>
+                    <field name="origin"/>
+
+                    <filter name="filter_pending_outgoing"
+                            string="Pendientes"
+                            domain="[('state', 'not in', ('done', 'cancel', 'draft')), ('picking_id.picking_type_id.code', '=', 'outgoing'), ('location_dest_id.usage', '=', 'customer'), ('sale_line_id', '!=', False), ('ab_qty_pending', '>', 0)]"/>
+                    <filter name="filter_reserved"
+                            string="Reservados"
+                            domain="[('ab_qty_reserved', '&gt;', 0)]"/>
+                    <filter name="filter_unreserved"
+                            string="Sin reservar"
+                            domain="[('ab_qty_reserved', '=', 0)]"/>
+                    <filter name="filter_with_batch"
+                            string="Con batch"
+                            domain="[('ab_batch_id', '!=', False)]"/>
+                    <filter name="filter_without_batch"
+                            string="Sin batch"
+                            domain="[('ab_batch_id', '=', False)]"/>
+                    <filter name="filter_late"
+                            string="Vencidos"
+                            domain="[('ab_delivery_bucket', '=', 'late')]"/>
+                    <filter name="filter_today"
+                            string="Entrega hoy"
+                            domain="[('ab_delivery_bucket', '=', 'today')]"/>
+                    <filter name="filter_future"
+                            string="Futuro"
+                            domain="[('ab_delivery_bucket', '=', 'future')]"/>
+                    <filter name="filter_dispatch_ready"
+                            string="Disponible para despacho"
+                            domain="[('ab_dispatch_status', '=', 'ready')]"/>
+                    <filter name="filter_dispatch_blocked"
+                            string="No disponible para despacho"
+                            domain="[('ab_dispatch_status', '=', 'blocked')]"/>
+
+                    <separator/>
+                    <filter name="group_by_sale_order"
+                            string="Orden de venta"
+                            context="{'group_by': 'ab_sale_order_id'}"/>
+                    <filter name="group_by_picking"
+                            string="Transferencia"
+                            context="{'group_by': 'picking_id'}"/>
+                    <filter name="group_by_batch"
+                            string="Batch"
+                            context="{'group_by': 'ab_batch_id'}"/>
+                    <filter name="group_by_customer"
+                            string="Cliente"
+                            context="{'group_by': 'ab_customer_id'}"/>
+                    <filter name="group_by_city"
+                            string="Ciudad"
+                            context="{'group_by': 'ab_customer_city'}"/>
+                    <filter name="group_by_product"
+                            string="Producto"
+                            context="{'group_by': 'product_id'}"/>
+                    <filter name="group_by_reservation_status"
+                            string="Estado reserva"
+                            context="{'group_by': 'ab_reservation_status'}"/>
+                    <filter name="group_by_dispatch_status"
+                            string="Estado despacho"
+                            context="{'group_by': 'ab_dispatch_status'}"/>
+                    <filter name="group_by_move_state"
+                            string="Estado picking"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_by_commitment_date"
+                            string="Fecha compromiso"
+                            context="{'group_by': 'ab_sale_commitment_date:day'}"/>
+                    <filter name="group_by_delivery_date"
+                            string="Fecha entrega"
+                            context="{'group_by': 'ab_delivery_date:day'}"/>
+                    <filter name="group_by_picking_date"
+                            string="Fecha programada"
+                            context="{'group_by': 'ab_picking_scheduled_date:day'}"/>
+                    <filter name="group_by_creation_date"
+                            string="Fecha creacion"
+                            context="{'group_by': 'create_date:day'}"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_stock_move_pending_delivery" model="ir.actions.act_window">
+            <field name="name">Pedidos pendientes de entrega</field>
+            <field name="res_model">stock.move</field>
+            <field name="view_mode">tree</field>
+            <field name="view_id" ref="view_stock_move_pending_delivery_tree"/>
+            <field name="search_view_id" ref="view_stock_move_pending_delivery_search"/>
+            <field name="domain">[('state', 'not in', ('done', 'cancel', 'draft')), ('picking_id.picking_type_id.code', '=', 'outgoing'), ('location_dest_id.usage', '=', 'customer'), ('sale_line_id', '!=', False), ('ab_qty_pending', '&gt;', 0)]</field>
+            <field name="help" type="html">
+                <p>Consola operativa para seguir los productos pendientes de despacho por orden de venta.</p>
+                <p>Desde aqui puede reservar, liberar reserva, ajustar la fecha por producto y crear batches de entrega.</p>
+            </field>
+        </record>
+
+        <record id="menu_sale_report_pending_delivery" model="ir.ui.menu">
+            <field name="name">Pedidos pendientes de entrega</field>
+            <field name="parent_id" ref="sale.sale_menu_root"/>
+            <field name="action" ref="action_stock_move_pending_delivery"/>
+            <field name="sequence">90</field>
+            <field name="groups_id" eval="[(5, 0, 0)]"/>
+            <field name="active">1</field>
+        </record>
+
+        <record id="menu_stock_report_pending_delivery" model="ir.ui.menu">
+            <field name="name">Pedidos pendientes de entrega</field>
+            <field name="parent_id" ref="stock.menu_warehouse_report"/>
+            <field name="action" ref="action_stock_move_pending_delivery"/>
+            <field name="sequence">90</field>
+            <field name="groups_id" eval="[(5, 0, 0)]"/>
+            <field name="active">1</field>
+        </record>
+    </data>
+</odoo>

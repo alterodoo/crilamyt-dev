@@ -1,0 +1,209 @@
+<odoo>
+    <data>
+        <record id="action_report_inspeccion_final" model="ir.actions.report">
+            <field name="name">Orden de Inspeccion Final</field>
+            <field name="model">mrp.master.order</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">alterben_mrp_master_order.report_inspeccion_final</field>
+            <field name="print_report_name">'Inspeccion Final - ' + (doc.name or '')</field>
+        </record>
+
+        <template id="report_inspeccion_final">
+            <t t-call="web.basic_layout">
+                <div class="page" style="margin-top:0; padding-top:0;">
+                    <style type="text/css">
+                        .if-report {
+                            font-size: 11px;
+                            font-family: Arial, sans-serif;
+                        }
+                        .if-title {
+                            text-align: center;
+                            font-weight: bold;
+                            font-size: 16px;
+                            margin-bottom: 8px;
+                        }
+                        .if-meta {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 8px;
+                        }
+                        .if-meta td {
+                            border: none;
+                            padding: 2px 4px;
+                            vertical-align: top;
+                        }
+                        .if-check {
+                            width: 11px;
+                            height: 11px;
+                            display: inline-block;
+                            border: 1px solid #000;
+                            margin-right: 4px;
+                            vertical-align: middle;
+                            text-align: center;
+                            line-height: 11px;
+                            font-size: 10px;
+                            font-weight: bold;
+                        }
+                        .if-box {
+                            width: 22px;
+                            height: 16px;
+                            display: inline-block;
+                            border: 1px solid #000;
+                            margin-left: 4px;
+                        }
+                        .if-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            table-layout: fixed;
+                            font-size: 10px;
+                        }
+                        .if-table th,
+                        .if-table td {
+                            border: 1px solid #000;
+                            padding: 2px 3px;
+                            line-height: 1.05;
+                        }
+                        .if-table th {
+                            text-align: center;
+                            font-weight: bold;
+                            vertical-align: middle;
+                        }
+                        .if-group-header {
+                            font-size: 10px;
+                            padding: 2px 0;
+                        }
+                        .if-vertical-cell {
+                            width: 30px;
+                            padding: 5px 0 !important;
+                            text-align: center;
+                            vertical-align: middle;
+                            overflow: hidden;
+                        }
+                        .if-vertical-text {
+                            display: inline-block;
+                            writing-mode: vertical-lr;
+                            transform: rotate(180deg);
+                            white-space: nowrap;
+                            font-size: 9px;
+                            font-weight: bold;
+                        }
+                        .if-center {
+                            text-align: center;
+                        }
+                        .if-right {
+                            text-align: right;
+                        }
+                        .if-footer {
+                            width: 100%;
+                            margin-top: 8px;
+                            font-size: 10px;
+                        }
+                        .if-signatures {
+                            width: 100%;
+                            margin-top: 44px;
+                            font-size: 12px;
+                        }
+                    </style>
+
+                    <div class="if-report">
+                        <div class="if-title">Reporte de Inspeccion Final</div>
+
+                        <table class="if-meta">
+                            <tr>
+                                <td style="width:50%;"><strong>LOTE:</strong> <span t-esc="master and (master.name or '') or ''"/></td>
+                                <td style="width:25%;" class="if-right"><strong>Fecha:</strong> <span t-esc="report_date_short"/></td>
+                                <td style="width:25%;">
+                                    <div><span class="if-check">X</span>Característica Significativa</div>
+                                    <div><span class="if-check">S</span>Característica de Seguridad</div>
+                                    <div><span class="if-check">R</span>Característica Reglamentaria / Legal</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" style="padding-top:8px;">
+                                    <strong>N° de Coche:</strong>
+                                    <span class="if-box"> </span>
+                                    <span class="if-box"> </span>
+                                    <span class="if-box"> </span>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table class="if-table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2" style="width:8%;">Ubicación<br/>Estantería</th>
+                                    <th rowspan="2" style="width:14%;">Código</th>
+                                    <th rowspan="2" style="width:28%;">Marca / medidas</th>
+                                    <th colspan="6" class="if-group-header" style="width:24%;">Resultado de inspección</th>
+                                    <th rowspan="2" style="width:10%;">Responsable</th>
+                                    <th rowspan="2" style="width:16%;">Observaciones</th>
+                                </tr>
+                                <tr>
+                                    <th class="if-vertical-cell" style="width:30px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
+                                        R<br/>e<br/>c<br/>i<br/>c<br/>l<br/>o
+                                    </th>
+                                    <th class="if-vertical-cell" style="width:30px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
+                                        A<br/>l<br/>m<br/>a<br/>c<br/>é<br/>n
+                                    </th>
+                                    <th class="if-vertical-cell" style="width:30px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
+                                        S<br/>e<br/>g<br/>u<br/>n<br/>d<br/>a
+                                    </th>
+                                    <th class="if-vertical-cell" style="width:30px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
+                                        D<br/>e<br/>s<br/>t<br/>r<br/>u<br/>i<br/>d<br/>o<br/>s
+                                    </th>
+                                    <th class="if-vertical-cell" style="width:40px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
+                                        V<br/>i<br/>t<br/>r<br/>i<br/>f<br/>i<br/>c<br/>a<br/>c<br/>i<br/>ó<br/>n
+                                    </th>
+                                    <th class="if-vertical-cell" style="width:40px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
+                                        C<br/>a<br/>n<br/>t<br/>i<br/>d<br/>a<br/>d<br/><br/>T<br/>o<br/>t<br/>a<br/>l
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="table_rows" t-as="row">
+                                    <t t-set="l" t-value="row.get('line')"/>
+                                    <td t-esc="row.get('ubicacion') or ''"/>
+                                    <td t-esc="row.get('codigo') or ''"/>
+                                    <td t-esc="row.get('descripcion') or ''"/>
+                                    <td class="if-center"> </td>
+                                    <td class="if-center"> </td>
+                                    <td class="if-center"> </td>
+                                    <td class="if-center"> </td>
+                                    <td class="if-center"> </td>
+                                    <td class="if-center">
+                                        <t t-if="l">
+                                            <t t-esc="'%d' % int(round(l.product_qty or 0.0))"/>
+                                        </t>
+                                        <t t-else=""> </t>
+                                    </td>
+                                    <td> </td>
+                                    <td> </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <table class="if-footer">
+                            <tr>
+                                <td style="width:20%;"><span t-esc="report_date_footer"/></td>
+                                <td style="width:60%;"/>
+                                <td style="width:10%; text-align:center; font-weight:bold;" t-esc="'%d' % int(round(total_qty or 0.0))"/>
+                                <td style="width:10%; text-align:right; font-weight:bold;">RPRO 05-04/02</td>
+                            </tr>
+                        </table>
+
+                        <table class="if-signatures">
+                            <tr>
+                                <td style="width:50%; text-align:center;">
+                                    <strong>Revisado por:</strong> ..............................................
+                                </td>
+                                <td style="width:50%; text-align:center;">
+                                    <strong>Aprobado por:</strong> ..............................................
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </t>
+        </template>
+    </data>
+</odoo>

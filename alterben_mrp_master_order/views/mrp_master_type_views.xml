@@ -1,0 +1,142 @@
+<odoo>
+    <record id="view_mrp_master_type_form" model="ir.ui.view">
+        <field name="name">mrp.master.type.form</field>
+        <field name="model">mrp.master.type</field>
+        <field name="arch" type="xml">
+            <form string="Tipo de Orden Maestra">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="active"/>
+                    </group>
+                    <group string="Parametros Curvado/PVB">
+                        <field name="prefix"/>
+                        <field name="next_number"/>
+                        <field name="location_dest_id"/>
+                        <field name="categ_id" string="Categoria de producto semi elaborado"/>
+                        <field name="auto_validate_scrap"/>
+                        <field name="allow_pedido_create" string="Permitir crear pedido nuevo desde la orden"/>
+                        <field name="validate_pedido_product"/>
+                        <field name="pedido_autofill_days"/>
+                    </group>
+                    <group string="Parametros OPT">
+                        <field name="opt_prefix"/>
+                        <field name="opt_next_number"/>
+                        <field name="opt_location_src_id"/>
+                        <field name="location_dest_opt_id"/>
+                        <field name="final_categ_id" string="Categoria de producto final"/>
+                    </group>
+                    <group string="Etiquetas OPT" colspan="4">
+                        <field name="opt_labels_exclude_product_ids" widget="many2many_tags"/>
+                    </group>
+                    <group string="Parametros de reportes">
+                        <field name="report_sales_days"/>
+                        <field name="rpt_units_small_8"/>
+                        <field name="rpt_units_small_12"/>
+                        <field name="rpt_units_large_8"/>
+                        <field name="rpt_units_large_12"/>
+                    </group>
+                    <group string="Parametros de importacion">
+                        <field name="import_scrap_location_id"/>
+                        <field name="auto_validate_import_scrap"/>
+                        <field name="allow_import_scrap_without_stock"/>
+                        <field name="structural_import_confirm_sale"/>
+                        <field name="structural_import_confirm_mo"/>
+                        <field name="structural_import_validate_scrap"/>
+                        <field name="structural_import_quote_qty_tolerance"/>
+                    </group>
+                    <group string="Control de stock negativo">
+                        <field name="allow_negative_transfer"/>
+                        <field name="allow_negative_mrp_consumption"/>
+                        <field name="allow_negative_customer_delivery"/>
+                        <field name="allow_negative_returns"/>
+                    </group>
+                    <group string="Control de consumo por ubicacion">
+                        <field name="allow_consume_cau"/>
+                        <field name="allow_consume_caf"/>
+                        <field name="allow_consume_importados"/>
+                    </group>
+                    <group string="Control de recepcion por ubicacion">
+                        <field name="allow_put_cau"/>
+                        <field name="allow_put_caf"/>
+                        <field name="allow_put_importados"/>
+                    </group>
+                    <group string="Control Total (Despachos / Produccion)">
+                        <field name="control_total_allowed_categ_ids" widget="many2many_tags"/>
+                        <label for="ct_picking_from" string="Rango Picking"/>
+                        <div class="o_row">
+                            <field name="ct_picking_from"/>
+                            <span>-</span>
+                            <field name="ct_picking_to"/>
+                        </div>
+                        <label for="ct_mrp_from" string="Rango Produccion"/>
+                        <div class="o_row">
+                            <field name="ct_mrp_from"/>
+                            <span>-</span>
+                            <field name="ct_mrp_to"/>
+                        </div>
+                    </group>
+                    <group string="Ubicaciones Inspeccion Final (OPT)">
+                        <field name="opt_location_almacen_id"/>
+                        <field name="opt_location_reciclo_id"/>
+                        <field name="opt_location_segunda_id"/>
+                        <field name="opt_location_cae_id"/>
+                    </group>
+                    <group string="Permisos Ordenes de Trabajo (OPT)">
+                        <field name="opt_users_ensamblado_ids" widget="many2many_tags"/>
+                        <field name="opt_users_prevaciado_ids" widget="many2many_tags"/>
+                        <field name="opt_users_inspeccion_ids" widget="many2many_tags"/>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                    <field name="activity_ids" widget="mail_activity"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_mrp_master_type_tree" model="ir.ui.view">
+        <field name="name">mrp.master_type.tree</field>
+        <field name="model">mrp.master.type</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="prefix"/>
+                <field name="next_number"/>
+                <field name="opt_prefix"/>
+                <field name="opt_next_number"/>
+                <field name="opt_location_src_id"/>
+                <field name="location_dest_id"/>
+                <field name="location_dest_opt_id"/>
+                <field name="import_scrap_location_id"/>
+                <field name="auto_validate_import_scrap"/>
+                <field name="allow_import_scrap_without_stock"/>
+                <field name="structural_import_confirm_sale"/>
+                <field name="structural_import_confirm_mo"/>
+                <field name="structural_import_validate_scrap"/>
+                <field name="structural_import_quote_qty_tolerance"/>
+                <field name="categ_id" string="Categoria de producto semi elaborado"/>
+                <field name="final_categ_id" string="Categoria de producto final"/>
+                <field name="auto_validate_scrap"/>
+                <field name="allow_pedido_create" string="Permitir crear pedido nuevo desde la orden"/>
+                <field name="validate_pedido_product"/>
+                <field name="pedido_autofill_days"/>
+                <field name="report_sales_days"/>
+                <field name="rpt_units_small_8"/>
+                <field name="rpt_units_small_12"/>
+                <field name="rpt_units_large_8"/>
+                <field name="rpt_units_large_12"/>
+                <field name="active"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_mrp_master_type" model="ir.actions.act_window">
+        <field name="name">Parametros de Ordenes Maestras</field>
+        <field name="res_model">mrp.master.type</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{}</field>
+    </record>
+</odoo>

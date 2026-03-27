@@ -1,0 +1,19 @@
+<odoo>
+    <record id="view_sale_forecast_detail_wizard_form" model="ir.ui.view">
+        <field name="name">sale.forecast.detail.wizard.form</field>
+        <field name="model">sale.forecast.detail.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Detalle de disponibilidad" create="0" edit="0" delete="0">
+                <sheet>
+                    <field name="sale_line_id" invisible="1"/>
+                    <div class="ab-forecast-modal-wrap">
+                        <field name="detail_html" widget="html" nolabel="1"/>
+                    </div>
+                </sheet>
+                <footer>
+                    <button string="Cerrar" class="btn-primary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

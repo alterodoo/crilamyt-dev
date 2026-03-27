@@ -1,0 +1,14 @@
+<odoo>
+    <record id="action_plant_dashboard" model="ir.actions.client">
+        <field name="name">Dashboard Planta</field>
+        <field name="tag">alterben_mrp_master_order.plant_dashboard</field>
+    </record>
+
+    <menuitem
+        id="menu_mrp_master_dashboard"
+        name="Dashboard Planta"
+        parent="alterben_mrp_master_order.menu_mrp_master_reports"
+        sequence="5"
+        action="action_plant_dashboard"
+    />
+</odoo>
