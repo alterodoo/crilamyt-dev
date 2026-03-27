@@ -1,0 +1,31 @@
+
+<odoo>
+    <record id="view_l10n_ec_invoices_report_tree_inherit_alterben_retinfo_ats_v2" model="ir.ui.view">
+        <field name="name">l10n.ec.invoices.report.tree.inherit.alterben.retinfo.ats.v2</field>
+        <field name="model">l10n_ec.invoices.report</field>
+        <field name="inherit_id" ref="l10n_ec_gh.view_invoices_report_tree"/>
+        <field name="arch" type="xml">
+
+            <!-- Ret. Informativa y casilleros 327 y 328 justo después de VAT 15% -->
+            <xpath expr="//tree/field[@name='amount_vat_15']" position="after">
+                <field name="ret_informativa" widget="boolean_toggle" optional="show"/>
+                <field name="amount_wh_ir_327" optional="hide"/>
+                <field name="amount_wh_ir_328" optional="hide"/>
+            </xpath>
+
+            <!-- Columnas de pagos (después del total) -->
+            <xpath expr="//tree/field[@name='amount_total']" position="after">
+                <field name="amount_paid" optional="show"/>
+                <field name="amount_paid_cutoff" optional="show"/>
+                <field name="amount_pending" optional="show"/>
+                <field name="amount_debt_cutoff" optional="show"/>
+            </xpath>
+            
+            <!-- Columna de posición fiscal (después del partner) -->
+            <xpath expr="//tree/field[@name='partner_id']" position="after">
+                <field name="fiscal_position" optional="show"/>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

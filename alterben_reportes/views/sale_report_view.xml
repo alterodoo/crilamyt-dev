@@ -1,0 +1,19 @@
+<odoo>
+    <record id="view_sale_report_tree_inherit_add_fecha_factura" model="ir.ui.view">
+        <field name="name">sale.report.tree.inherit.add.fecha.factura</field>
+        <field name="model">sale.report</field>
+        <!-- Vista del Análisis de Ventas (sale.report) -->
+        <field name="inherit_id" ref="sale.sale_report_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//tree/field[@name='product_id']" position="after">
+                <field name="qty_on_hand" optional="show"/>
+                <field name="qty_available" optional="show"/>
+                <field name="qty_on_hand_detail" optional="show"/>
+                <field name="qty_available_detail" optional="show"/>
+            </xpath>
+            <xpath expr="//tree" position="inside">
+                <field name="x_date_inv" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

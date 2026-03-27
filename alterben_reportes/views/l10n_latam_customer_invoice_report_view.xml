@@ -1,0 +1,15 @@
+<odoo>
+    <record id="view_l10n_latam_customer_invoice_report_tree_inherit_alterben_svl" model="ir.ui.view">
+        <field name="name">l10n.latam.customer.invoice.report.tree.inherit.alterben.svl</field>
+        <field name="model">l10n_latam.customer.invoice.report</field>
+        <field name="inherit_id" search="[('model', '=', 'l10n_latam.customer.invoice.report'), ('type', '=', 'tree')]" />
+        <field name="arch" type="xml">
+            <xpath expr="//tree/field[@name='unit_cost']" position="after">
+                <field name="cost_svl" optional="show"/>
+                <field name="cost_svl_total" optional="show"/>
+                <field name="margin_svl_total" optional="show"/>
+                <field name="margin_svl_percent" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
