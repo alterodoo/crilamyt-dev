@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Tree view for report lines -->
+    <record id="view_balance_101_super_tree" model="ir.ui.view">
+        <field name="name">alterben.balance101super.line.tree</field>
+        <field name="model">alterben.balance101super.line</field>
+        <field name="arch" type="xml">
+            <tree string="Balance 101 / Supercias" create="false" edit="false" delete="false">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="saldo_anterior"/>
+                <field name="debitos"/>
+                <field name="creditos"/>
+                <field name="saldo_final"/>
+                <field name="nivel"/>
+                <field name="tag_ids" widget="many2many_tags"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Search view -->
+    <record id="view_balance_101_super_search" model="ir.ui.view">
+        <field name="name">alterben.balance101super.line.search</field>
+        <field name="model">alterben.balance101super.line</field>
+        <field name="arch" type="xml">
+            <search string="Balance 101 / Supercias">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="tag_ids"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_code" string="Código" context="{'group_by':'code'}"/>
+                    <filter name="group_tags" string="Etiquetas" context="{'group_by':'tag_ids'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action to open report lines (used by wizard) -->
+    <record id="action_alterben_balance_101_super_lines" model="ir.actions.act_window">
+        <field name="name">Balance 101 / Supercias</field>
+        <field name="res_model">alterben.balance101super.line</field>
+        <field name="view_mode">tree,search</field>
+        <field name="view_id" ref="view_balance_101_super_tree"/>
+        <field name="search_view_id" ref="view_balance_101_super_search"/>
+        <field name="target">current</field>
+    </record>
+
+    <!-- Wizard view -->
+    <record id="view_balance_101_super_wizard" model="ir.ui.view">
+        <field name="name">alterben.balance101super.wizard.form</field>
+        <field name="model">alterben.balance101super.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Balance 101 / Supercias">
+                <group>
+                    <field name="company_id"/>
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                </group>
+                <footer>
+                    <button string="Generar" type="object" name="action_generate_report" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open wizard -->
+    <record id="action_balance_101_super_wizard" model="ir.actions.act_window">
+        <field name="name">Balance 101 / Supercias</field>
+        <field name="res_model">alterben.balance101super.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_balance_101_super_wizard"/>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Menu item under Accounting / Reports -->
+    <menuitem id="menu_alterben_balance_101_super_root"
+              name="Balance 101 / Supercias"
+              parent="account.menu_finance_reports"
+              action="action_balance_101_super_wizard"
+              sequence="90"/>
+</odoo>

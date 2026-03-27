@@ -1,0 +1,17 @@
+<odoo>
+    <record id="view_order_form_whatsappweb" model="ir.ui.view">
+        <field name="name">sale.order.form.whatsappweb</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <header position="inside">
+                <button name="action_whatsappweb_quotation"
+                        type="object"
+                        string=""
+                        icon="fa-whatsapp"
+                        class="btn-success"
+                        help="Enviar cotización por WhatsApp Web"/>
+            </header>
+        </field>
+    </record>
+</odoo>
