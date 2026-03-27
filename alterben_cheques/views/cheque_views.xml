@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_alterben_posdated_check_tree" model="ir.ui.view">
+        <field name="name">alterben.posdated.check.tree</field>
+        <field name="model">alterben.posdated.check</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+                <field name="date_register"/>
+                <field name="partner_id"/>
+                <field name="bank_id"/>
+                <field name="check_number"/>
+                <field name="amount"/>
+                <field name="charge_date"/>
+                <field name="deposit_number"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_alterben_posdated_check_form" model="ir.ui.view">
+        <field name="name">alterben.posdated.check.form</field>
+        <field name="model">alterben.posdated.check</field>
+        <field name="arch" type="xml">
+            <form string="Cheque Posfechado">
+                <header>
+                    <button name="action_confirm" type="object" string="Confirmar" class="oe_highlight"
+                            invisible="state != 'draft'"/>
+
+                    <button name="action_deposit" type="object" string="Depositar" class="oe_highlight"
+                            invisible="state != 'to_deposit'"/>
+
+                    <button name="%(action_alterben_posdated_check_export_wizard)d" type="action"
+                            string="Depositar + Excel" class="oe_highlight"
+                            invisible="state != 'to_deposit'"/>
+
+                    <button name="action_confirm_deposit" type="object" string="Confirmar Depósito" class="oe_highlight"
+                            invisible="state != 'deposited'"/>
+                    <button name="action_return" type="object" string="Devolver Cheque" class="oe_highlight"
+                            invisible="state not in ('deposited','deposit_confirmed')"/>
+                    <button name="action_set_to_draft" type="object" string="Reestablecer a Borrador"
+                            invisible="state == 'cancelled'"/>
+                    <button name="action_cancel" type="object" string="Cancelar"
+                            invisible="state != 'draft'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,to_deposit,deposited,deposit_confirmed,returned,cancelled"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" readonly="1"/>
+                            <field name="date_register"/>
+                            <field name="partner_id"/>
+                            <field name="bank_id"/>
+                            <field name="check_number"/>
+                        </group>
+                        <group>
+                            <field name="amount"/>
+                            <field name="currency_id"/>
+                            <field name="charge_date"/>
+                            <field name="deposit_number"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="return_reason"/>
+                    </group>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids"/>
+                        <field name="activity_ids"/>
+                        <field name="message_ids"/>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_alterben_posdated_check" model="ir.actions.act_window">
+        <field name="name">Cheques Posfechados</field>
+        <field name="res_model">alterben.posdated.check</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p>
+                Registre y controle sus cheques posfechados. Este módulo no genera asientos contables.
+            </p>
+        </field>
+    </record>
+</odoo>

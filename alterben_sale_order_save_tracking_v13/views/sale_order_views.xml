@@ -1,0 +1,12 @@
+<odoo>
+    <record id="view_order_form_enable_save_tracking" model="ir.ui.view">
+        <field name="name">sale.order.form.enable.save.tracking</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <header position="after">
+                <field name="enable_save_tracking"/>
+            </header>
+        </field>
+    </record>
+</odoo>

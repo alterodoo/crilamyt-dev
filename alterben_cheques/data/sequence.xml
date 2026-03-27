@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="seq_alterben_posdated_check" model="ir.sequence">
+        <field name="name">Cheques Posfechados</field>
+        <field name="code">alterben.posdated.check</field>
+        <field name="prefix">CHQ/%(year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>

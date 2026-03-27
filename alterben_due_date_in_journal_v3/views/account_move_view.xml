@@ -1,0 +1,18 @@
+<odoo>
+    <!-- Alta prioridad para asegurarnos de aplicar después de otras herencias -->
+    <record id="view_move_form_inherit_due_date_non_invoices" model="ir.ui.view">
+        <field name="name">account.move.form.inherit.due.date.non.invoices</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="priority" eval="99"/>
+        <field name="arch" type="xml">
+            <!-- Insertar justo después del campo date dentro del sheet -->
+            <xpath expr="//sheet//field[@name='date']" position="after">
+                <field name="invoice_date_due"
+                       string="Fecha de vencimiento"
+                       readonly="0"
+                       invisible="move_type in ('out_invoice','out_refund','in_invoice','in_refund')"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

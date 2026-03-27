@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="action_server_alterben_posdated_check_multi_deposit" model="ir.actions.server">
+        <field name="name">Depositar Cheques</field>
+        <field name="model_id" ref="model_alterben_posdated_check"/>
+        <field name="binding_model_id" ref="model_alterben_posdated_check"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+action = records.action_multi_deposit()
+        </field>
+    </record>
+
+    <record id="action_server_alterben_posdated_check_deposit_and_export" model="ir.actions.server">
+        <field name="name">Depositar + Exportar Excel (Pagos)</field>
+        <field name="model_id" ref="model_alterben_posdated_check"/>
+        <field name="binding_model_id" ref="model_alterben_posdated_check"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Generar Excel para Importar Pagos',
+    'res_model': 'alterben.posdated.check.export.wizard',
+    'view_mode': 'form',
+    'target': 'new',
+    'context': {'active_ids': records.ids, 'default_check_ids': [(6, 0, records.ids)]},
+}
+        </field>
+    </record>
+</odoo>

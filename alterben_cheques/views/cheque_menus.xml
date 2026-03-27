@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <menuitem id="menu_alterben_posdated_check_root"
+              name="Cheques Posfechados"
+              parent="account.menu_finance_receivables"
+              action="action_alterben_posdated_check"
+              sequence="60"/>
+</odoo>
