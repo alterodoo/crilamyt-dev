@@ -27,7 +27,8 @@
                         .pvb-figura-table th,
                         .pvb-figura-table td {
                             border: 1px solid #000;
-                            padding: 2px 4px;
+                            padding: 4px 4px;
+                            line-height: 1.15;
                             white-space: nowrap;
                             overflow: hidden;
                             text-overflow: ellipsis;
@@ -37,9 +38,10 @@
                         <thead>
                             <tr>
                                 <th style="width:4%;">#</th>
-                                <th style="width:13%;">PEDIDO</th>
-                                <th style="width:17%;">CODIGO</th>
-                                <th style="width:28%;">DESCRIPCION</th>
+                                <th style="width:12%;">PEDIDO</th>
+                                <th style="width:14%;">CODIGO</th>
+                                <th style="width:16%;">COD. BARRAS</th>
+                                <th style="width:25%;">DESCRIPCION</th>
                                 <th style="width:8%;">CANT.</th>
                                 <th style="width:6%;">ALTO</th>
                                 <th style="width:6%;">ANCHO</th>
@@ -58,6 +60,7 @@
                                     <td t-esc="_i"/>
                                     <td t-esc="l.pedido_original_id.name or ''"/>
                                     <td t-esc="l.product_id.default_code or ''"/>
+                                    <td t-esc="l.product_id.barcode or ''"/>
                                     <td t-esc="l.product_id.name or ''"/>
                                     <td t-esc="'%.0f' % (l.product_qty or 0.0)"/>
                                     <td t-esc="'%.0f' % row['alto'] if row['alto'] not in (False, None) else ''"/>
@@ -66,12 +69,6 @@
                                     <td t-esc="'%.1f' % row['v2'] if row['v2'] not in (False, None) else ''"/>
                                     <td t-esc="row['c1'] or ''"/>
                                     <td t-esc="row['c2'] or ''"/>
-                                </tr>
-                                <tr>
-                                    <td colspan="11" style="font-size:10px; border-top:none;">
-                                        <strong>Código barras:</strong>
-                                        <span t-esc="l.product_id.barcode or ''"/>
-                                    </td>
                                 </tr>
                             </t>
                         </tbody>

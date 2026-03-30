@@ -2235,11 +2235,29 @@ class MRPReportRawMaterialConsumption(models.TransientModel):
         if self.raw_product_ids:
             domain.append(("product_id", "in", self.raw_product_ids.ids))
 
+        scrap_domain = []
+        if "state" in Scrap._fields:
+            scrap_domain.append(("state", "=", "done"))
+        if "production_id" in Scrap._fields:
+            scrap_domain.append(("production_id", "!=", False))
+
+        scraps = Scrap.search(scrap_domain)
+        scrap_move_ids = set()
+        if "move_id" in Scrap._fields:
+            scrap_move_ids = set(scraps.mapped("move_id").ids)
+
         moves = Move.search(domain, order="raw_material_production_id, product_id, id")
         grouped = {}
         scrap_grouped = {}
 
         for move in moves:
+            if move.id in scrap_move_ids:
+                continue
+            if "scrapped" in move._fields and move.scrapped:
+                continue
+            if move.location_dest_id and getattr(move.location_dest_id, "scrap_location", False):
+                continue
+
             production = move.raw_material_production_id
             raw_product = move.product_id
             finished_product = production.product_id if production else False
@@ -2291,13 +2309,6 @@ class MRPReportRawMaterialConsumption(models.TransientModel):
                 if not current_dt or done_dt > current_dt:
                     bucket["date_done"] = fields.Datetime.to_string(done_dt)
 
-        scrap_domain = []
-        if "state" in Scrap._fields:
-            scrap_domain.append(("state", "=", "done"))
-        if "production_id" in Scrap._fields:
-            scrap_domain.append(("production_id", "!=", False))
-
-        scraps = Scrap.search(scrap_domain)
         for scrap in scraps:
             production = getattr(scrap, "production_id", False) or (getattr(scrap, "workorder_id", False) and scrap.workorder_id.production_id) or False
             raw_product = getattr(scrap, "product_id", False)

@@ -98,6 +98,19 @@
                             margin-top: 8px;
                             font-size: 10px;
                         }
+                        .if-blank-row td {
+                            height: 17px;
+                            padding-top: 5px;
+                            padding-bottom: 5px;
+                        }
+                        .if-code-col {
+                            font-size: 10px;
+                        }
+                        .if-brand-col {
+                            font-family: "Arial Narrow", "Liberation Sans Narrow", "Nimbus Sans Narrow", Arial, sans-serif;
+                            font-size: 11px;
+                            line-height: 1.08;
+                        }
                         .if-signatures {
                             width: 100%;
                             margin-top: 44px;
@@ -131,9 +144,9 @@
                         <table class="if-table">
                             <thead>
                                 <tr>
-                                    <th rowspan="2" style="width:8%;">Ubicación<br/>Estantería</th>
-                                    <th rowspan="2" style="width:14%;">Código</th>
-                                    <th rowspan="2" style="width:28%;">Marca / medidas</th>
+                                    <th rowspan="2" style="width:7%;">Ubicación<br/>Estantería</th>
+                                    <th rowspan="2" style="width:10%;">Código</th>
+                                    <th rowspan="2" style="width:33%;">Marca / medidas</th>
                                     <th colspan="6" class="if-group-header" style="width:24%;">Resultado de inspección</th>
                                     <th rowspan="2" style="width:10%;">Responsable</th>
                                     <th rowspan="2" style="width:16%;">Observaciones</th>
@@ -160,24 +173,24 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr t-foreach="table_rows" t-as="row">
+                                <tr t-foreach="table_rows" t-as="row" t-att-class="not row.get('line') and 'if-blank-row' or ''">
                                     <t t-set="l" t-value="row.get('line')"/>
-                                    <td t-esc="row.get('ubicacion') or ''"/>
-                                    <td t-esc="row.get('codigo') or ''"/>
-                                    <td t-esc="row.get('descripcion') or ''"/>
-                                    <td class="if-center"> </td>
-                                    <td class="if-center"> </td>
-                                    <td class="if-center"> </td>
-                                    <td class="if-center"> </td>
-                                    <td class="if-center"> </td>
+                                    <td><t t-esc="row.get('ubicacion') or ''"/><t t-if="not l">&#160;</t></td>
+                                    <td class="if-code-col"><t t-esc="row.get('codigo') or ''"/><t t-if="not l">&#160;</t></td>
+                                    <td class="if-brand-col"><t t-esc="row.get('descripcion') or ''"/><t t-if="not l">&#160;</t></td>
+                                    <td class="if-center">&#160;</td>
+                                    <td class="if-center">&#160;</td>
+                                    <td class="if-center">&#160;</td>
+                                    <td class="if-center">&#160;</td>
+                                    <td class="if-center">&#160;</td>
                                     <td class="if-center">
                                         <t t-if="l">
                                             <t t-esc="'%d' % int(round(l.product_qty or 0.0))"/>
                                         </t>
-                                        <t t-else=""> </t>
+                                        <t t-else="">&#160;</t>
                                     </td>
-                                    <td> </td>
-                                    <td> </td>
+                                    <td>&#160;</td>
+                                    <td>&#160;</td>
                                 </tr>
                             </tbody>
                         </table>
