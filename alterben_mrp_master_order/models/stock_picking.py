@@ -145,11 +145,16 @@ class StockPicking(models.Model):
         blocked_location_ids = self._get_blocked_source_location_ids_from_config()
         if not blocked_location_ids:
             return []
+        blocked_categ_ids = self.env["mrp.master.type"].sudo()._get_global_blocked_parent_source_category_ids()
+        if not blocked_categ_ids:
+            return []
 
         violations = set()
         relevant_move_lines = self.move_line_ids.filtered(
             lambda ml: (
                 ml.product_id
+                and ml.product_id.categ_id
+                and ml.product_id.categ_id.id in blocked_categ_ids
                 and ml.state != "cancel"
                 and ml.location_id
                 and ml.location_id.id in blocked_location_ids
@@ -163,6 +168,8 @@ class StockPicking(models.Model):
             fallback_moves = self.move_ids_without_package.filtered(
                 lambda mv: (
                     mv.product_id
+                    and mv.product_id.categ_id
+                    and mv.product_id.categ_id.id in blocked_categ_ids
                     and mv.state not in ("draft", "cancel")
                     and mv.location_id
                     and mv.location_id.id in blocked_location_ids

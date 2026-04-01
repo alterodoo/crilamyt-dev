@@ -34,6 +34,7 @@ from . import stock_return_picking
 from . import sale_order
 from . import sale_order_line
 from . import sale_delivery_cancellation
+from . import pending_delivery_audit
 from . import sale_bucket_option
 
 # Asegurar que los modelos se carguen correctamente

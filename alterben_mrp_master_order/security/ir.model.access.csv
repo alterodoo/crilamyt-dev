@@ -17,6 +17,7 @@ access_mrp_report_raw_material_consumption_user,access.mrp.report.raw.material.c
 access_mrp_report_raw_material_consumption_line_user,access.mrp.report.raw.material.consumption.line.user,model_mrp_report_raw_material_consumption_line,base.group_user,1,1,1,1
 access_sale_forecast_detail_wizard_user,access.sale.forecast.detail.wizard.user,model_sale_forecast_detail_wizard,base.group_user,1,1,1,1
 access_sale_delivery_cancellation_log_user,access.sale.delivery.cancellation.log.user,model_sale_delivery_cancellation_log,base.group_user,1,1,1,0
+access_stock_move_pending_delivery_audit_user,access.stock.move.pending.delivery.audit.user,model_stock_move_pending_delivery_audit,base.group_user,1,0,0,0
 access_stock_move_cancel_delivery_wizard_user,access.stock.move.cancel.delivery.wizard.user,model_stock_move_cancel_delivery_wizard,base.group_user,1,1,1,1
 access_alterben_bucket_option_user,access.alterben.bucket.option.user,model_alterben_bucket_option,base.group_user,1,1,1,1
 access_alterben_workorder_novedades_wizard_user,access.alterben.workorder.novedades.wizard.user,model_alterben_workorder_novedades_wizard,base.group_user,1,1,1,1

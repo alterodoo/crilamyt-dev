@@ -546,10 +546,7 @@ class MrpPlantDashboard(models.TransientModel):
         family_config = self._get_family_config()
         metrics_by_family = {
             family_key: {
-                "cards": {
-                    stage["key"]: self._empty_stage_metrics(stage)
-                    for stage in stage_configs
-                },
+                "cards": {stage["key"]: self._empty_stage_metrics(stage) for stage in stage_configs},
                 "summary": self._empty_summary(data["label"], data["color"]),
                 "unmapped_samples": set(),
             }
@@ -599,11 +596,7 @@ class MrpPlantDashboard(models.TransientModel):
                     family_bucket["summary"]["_open_production_qty"][production.id] = stage_qty
             if state == "done":
                 metric["qty_finished"] += qty_produced
-                if (
-                    production
-                    and self._is_final_finished_product(product)
-                    and self._is_today_in_user_tz(getattr(production, "date_finished", False), today=today)
-                ):
+                if production and self._is_final_finished_product(product) and self._is_today_in_user_tz(getattr(production, "date_finished", False), today=today):
                     family_bucket["summary"]["_finished_today_qty"][production.id] = float(getattr(production, "product_qty", 0.0) or qty_produced or 0.0)
             if production:
                 metric["_production_ids"].add(production.id)
@@ -727,21 +720,14 @@ class MrpPlantDashboard(models.TransientModel):
                 for state_key, products in metric.pop("state_products").items():
                     rows = []
                     for product_id, values in products.items():
-                        rows.append({
-                            "product_id": product_id,
-                            "product_name": values["product_name"],
-                            "qty": round(values["qty"], 2),
-                        })
+                        rows.append({"product_id": product_id, "product_name": values["product_name"], "qty": round(values["qty"], 2)})
                     rows.sort(key=lambda item: (-item["qty"], item["product_name"]))
                     serialized_state_products[state_key] = rows
                     state_product_overflow[state_key] = 0
                 metric["state_products"] = serialized_state_products
                 metric["state_product_overflow"] = state_product_overflow
                 metric["material_summary"] = self._compute_material_summary(open_production_ids)
-                metric["running_tasks"] = sorted(
-                    metric["running_tasks"],
-                    key=lambda item: (-item["elapsed_minutes"], item["workorder_name"]),
-                )[:5]
+                metric["running_tasks"] = sorted(metric["running_tasks"], key=lambda item: (-item["elapsed_minutes"], item["workorder_name"]))[:5]
                 done_qty = metric.pop("_done_qty", 0.0)
                 duration_total = metric.pop("_duration_total", 0.0)
                 expected_total = metric.pop("_expected_total", 0.0)
@@ -750,10 +736,7 @@ class MrpPlantDashboard(models.TransientModel):
                     metric["avg_expected"] = round(expected_total / done_qty, 2)
                     if metric["avg_duration"] > 0:
                         metric["efficiency_ratio"] = round((metric["avg_expected"] / metric["avg_duration"]) * 100, 1)
-                    if metric["avg_duration"] <= (metric["avg_expected"] * 1.2):
-                        metric["duration_status"] = "good"
-                    else:
-                        metric["duration_status"] = "bad"
+                    metric["duration_status"] = "good" if metric["avg_duration"] <= (metric["avg_expected"] * 1.2) else "bad"
                 metric["qty_in_progress"] = round(metric["qty_in_progress"], 2)
                 metric["qty_finished"] = round(metric["qty_finished"], 2)
                 cards.append(metric)
@@ -781,13 +764,7 @@ class MrpPlantDashboard(models.TransientModel):
         for product_data in products_map.values():
             suffix = _extract_suffix(product_data["default_code"])
             summary = in_process_summary.get(suffix) or {}
-            product_data["in_process_qty"] = round(
-                float(summary.get("s1", 0.0) or 0.0)
-                + float(summary.get("s2", 0.0) or 0.0)
-                + float(summary.get("s3", 0.0) or 0.0)
-                + float(summary.get("pt", 0.0) or 0.0),
-                2,
-            )
+            product_data["in_process_qty"] = round(float(summary.get("s1", 0.0) or 0.0) + float(summary.get("s2", 0.0) or 0.0) + float(summary.get("s3", 0.0) or 0.0) + float(summary.get("pt", 0.0) or 0.0), 2)
             stage_parts = []
             for stage_key, label in (("s1", "S1"), ("s2", "S2"), ("s3", "S3"), ("pt", "PT")):
                 qty = float(summary.get(stage_key, 0.0) or 0.0)
@@ -799,10 +776,7 @@ class MrpPlantDashboard(models.TransientModel):
         product_summary.update({
             "products_count": len(product_rows),
             "active_products": sum(1 for row in product_rows if row["active_workorders"]),
-            "total_workorders": sum(
-                row["active_workorders"] + row["queued_workorders"] + row["blocked_workorders"] + row["done_workorders"]
-                for row in product_rows
-            ),
+            "total_workorders": sum(row["active_workorders"] + row["queued_workorders"] + row["blocked_workorders"] + row["done_workorders"] for row in product_rows),
             "active_workorders": sum(row["active_workorders"] for row in product_rows),
             "queued_workorders": sum(row["queued_workorders"] for row in product_rows),
             "blocked_workorders": sum(row["blocked_workorders"] for row in product_rows),
@@ -817,10 +791,7 @@ class MrpPlantDashboard(models.TransientModel):
             "label": "Productos",
             "type": "products",
             "summary": product_summary,
-            "stage_options": [
-                {"key": stage["key"], "label": stage["label"]}
-                for stage in stage_configs
-            ],
+            "stage_options": [{"key": stage["key"], "label": stage["label"]} for stage in stage_configs],
             "rows": product_rows,
         })
 
@@ -837,7 +808,4 @@ class MrpPlantDashboard(models.TransientModel):
             "last_refresh": self._format_user_datetime(now),
         })
 
-        return {
-            "summary": overall_summary,
-            "tabs": tabs,
-        }
+        return {"summary": overall_summary, "tabs": tabs}

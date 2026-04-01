@@ -39,6 +39,31 @@ class SaleOrderLine(models.Model):
     )
     x_stock_info = fields.Char(string="Stock Info", compute="_compute_stock_info")
 
+    @api.model
+    def _ab_get_bucket_code_from_option_id(self, option_id):
+        if not option_id:
+            return False
+        option = self.env["alterben.bucket.option"].browse(option_id).exists()
+        return option.code if option else False
+
+    @api.model
+    def _ab_sync_bucket_vals(self, vals):
+        vals = dict(vals)
+        if "x_bucket_option_id" not in vals:
+            return vals
+        option_id = vals.get("x_bucket_option_id")
+        if not option_id:
+            vals["x_bucket_code"] = False
+            vals["x_bucket"] = False
+            if "route_id" not in vals:
+                vals["route_id"] = False
+            return vals
+
+        code = self._ab_get_bucket_code_from_option_id(option_id)
+        vals["x_bucket_code"] = code or False
+        vals["x_bucket"] = code or False
+        return vals
+
     def _sync_qty_from_requested_qty(self, vals):
         if "x_studio_pedido" not in self._fields:
             return vals
@@ -303,14 +328,17 @@ class SaleOrderLine(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        vals_list = [self._sync_qty_from_requested_qty(dict(vals)) for vals in vals_list]
+        vals_list = [
+            self._ab_sync_bucket_vals(self._sync_qty_from_requested_qty(dict(vals)))
+            for vals in vals_list
+        ]
         lines = super().create(vals_list)
         if not self.env.context.get("skip_apply_route_logic"):
             lines._apply_route_logic()
         return lines
 
     def write(self, vals):
-        vals = dict(vals)
+        vals = self._ab_sync_bucket_vals(dict(vals))
         if (
             "x_studio_pedido" in self._fields
             and "x_studio_pedido" in vals
@@ -353,24 +381,31 @@ class SaleOrderLine(models.Model):
                 line.route_id = False
 
     def _apply_route_logic(self):
-        Route = self.env["stock.route"].sudo()
-        caf_route = Route.search([("name", "ilike", "CAF")], limit=1)
-
         for line in self.filtered(lambda ln: not getattr(ln, "display_type", False)):
+            effective_bucket_code = line.x_bucket_code or (line.x_bucket_option_id.code if line.x_bucket_option_id else False)
+            sync_vals = {}
+            if line.x_bucket_code != effective_bucket_code:
+                sync_vals["x_bucket_code"] = effective_bucket_code or False
+            if line.x_bucket != effective_bucket_code:
+                sync_vals["x_bucket"] = effective_bucket_code or False
             target_route_id = False
-            if line.x_bucket_code == "CAF" and caf_route:
+            caf_route = False
+            if effective_bucket_code == "CAF" and caf_route:
                 target_route_id = caf_route.id
+            elif effective_bucket_code == "CAF":
+                caf_route = line._find_caf_route()
+                target_route_id = caf_route.id if caf_route else False
             current_route_id = line.route_id.id if line.route_id else False
             if current_route_id != target_route_id:
-                super(SaleOrderLine, line.with_context(skip_apply_route_logic=True)).write({
-                    "route_id": target_route_id,
-                })
+                sync_vals["route_id"] = target_route_id
+            if sync_vals:
+                super(SaleOrderLine, line.with_context(skip_apply_route_logic=True)).write(sync_vals)
 
     def _find_caf_route(self):
         self.ensure_one()
         Route = self.env["stock.route"].sudo()
         Rule = self.env["stock.rule"].sudo()
-        routes = Route.search([("sale_selectable", "=", True)], order="id")
+        routes = Route.search([], order="sale_selectable desc, id")
         for route in routes:
             rules = Rule.search([("route_id", "=", route.id), ("action", "in", ("pull", "pull_push"))])
             for rule in rules:

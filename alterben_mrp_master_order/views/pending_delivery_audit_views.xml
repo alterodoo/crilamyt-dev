@@ -1,0 +1,51 @@
+<odoo>
+    <data>
+        <record id="view_stock_move_pending_delivery_audit_tree" model="ir.ui.view">
+            <field name="name">stock.move.pending.delivery.audit.tree</field>
+            <field name="model">stock.move.pending.delivery.audit</field>
+            <field name="arch" type="xml">
+                <tree string="Auditoria de pedidos pendientes" create="false" delete="false" edit="false">
+                    <field name="create_date" string="Fecha"/>
+                    <field name="action_type"/>
+                    <field name="user_id"/>
+                    <field name="order_id"/>
+                    <field name="picking_id"/>
+                    <field name="product_id"/>
+                    <field name="reserved_before"/>
+                    <field name="reserved_after"/>
+                    <field name="pending_before"/>
+                    <field name="pending_after"/>
+                    <field name="quantity_changed"/>
+                    <field name="reason"/>
+                    <field name="note"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="view_stock_move_pending_delivery_audit_form" model="ir.ui.view">
+            <field name="name">stock.move.pending.delivery.audit.form</field>
+            <field name="model">stock.move.pending.delivery.audit</field>
+            <field name="arch" type="xml">
+                <form string="Auditoria de pedido pendiente" create="false" delete="false" edit="false">
+                    <sheet>
+                        <group>
+                            <field name="create_date" string="Fecha"/>
+                            <field name="action_type"/>
+                            <field name="user_id"/>
+                            <field name="order_id"/>
+                            <field name="picking_id"/>
+                            <field name="product_id"/>
+                            <field name="reserved_before"/>
+                            <field name="reserved_after"/>
+                            <field name="pending_before"/>
+                            <field name="pending_after"/>
+                            <field name="quantity_changed"/>
+                            <field name="reason"/>
+                            <field name="note"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

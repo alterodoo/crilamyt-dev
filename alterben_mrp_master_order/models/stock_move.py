@@ -14,6 +14,15 @@ class StockMove(models.Model):
         "move_id",
         string="Cancelaciones de despacho",
     )
+    ab_pending_delivery_audit_ids = fields.One2many(
+        "stock.move.pending.delivery.audit",
+        "move_id",
+        string="Auditoria pendientes entrega",
+    )
+    ab_pending_delivery_audit_count = fields.Integer(
+        string="Auditorias",
+        compute="_compute_ab_pending_delivery_audit_count",
+    )
 
     ab_sale_order_id = fields.Many2one(
         "sale.order",
@@ -136,6 +145,144 @@ class StockMove(models.Model):
         compute="_compute_ab_delivery_bucket",
         search="_search_ab_delivery_bucket",
     )
+    ab_source_bucket = fields.Selection(
+        [
+            ("CAU", "CAU"),
+            ("CAF", "CAF"),
+            ("IMPORTADOS", "IMPORTADOS"),
+            ("CES", "CES"),
+            ("CAE", "CAE"),
+        ],
+        string="Ubicacion",
+        compute="_compute_ab_source_bucket",
+    )
+
+    def _compute_ab_pending_delivery_audit_count(self):
+        for move in self:
+            move.ab_pending_delivery_audit_count = len(move.ab_pending_delivery_audit_ids)
+
+    @api.depends("location_id", "location_id.complete_name", "location_id.name")
+    def _compute_ab_source_bucket(self):
+        for move in self:
+            location_name = ((move.location_id.complete_name or move.location_id.name or "") if move.location_id else "").upper()
+            bucket = False
+            for key in ("CAU", "CAF", "IMPORTADOS", "CES", "CAE"):
+                if f"/{key}" in location_name or location_name.endswith(key):
+                    bucket = key
+                    break
+            move.ab_source_bucket = bucket
+
+    def _ab_create_pending_delivery_audit_entry(self, action_type, reserved_before, reserved_after, pending_before, pending_after, quantity_changed=0.0, reason=False, note=False):
+        self.ensure_one()
+        self.env["stock.move.pending.delivery.audit"].create({
+            "move_id": self.id,
+            "sale_line_id": self.sale_line_id.id if self.sale_line_id else False,
+            "action_type": action_type,
+            "reserved_before": float(reserved_before or 0.0),
+            "reserved_after": float(reserved_after or 0.0),
+            "pending_before": float(pending_before or 0.0),
+            "pending_after": float(pending_after or 0.0),
+            "quantity_changed": float(quantity_changed or 0.0),
+            "reason": reason or False,
+            "note": note or False,
+        })
+
+    @api.model
+    def _ab_get_blocked_source_location_ids_from_config(self):
+        raw_value = self.env["ir.config_parameter"].sudo().get_param(
+            "alterben_mrp_master_order.blocked_source_location_ids",
+            default="",
+        )
+        return {
+            int(value)
+            for value in (raw_value or "").split(",")
+            if value.strip().isdigit()
+        }
+
+    @api.model
+    def _ab_get_blocked_parent_source_category_ids(self):
+        return self.env["mrp.master.type"].sudo()._get_global_blocked_parent_source_category_ids()
+
+    @api.model
+    def _ab_get_putaway_target_location(self, base_location, product):
+        if not base_location or not product:
+            return False
+
+        putaway_apply = getattr(base_location, "putaway_apply", None)
+        if putaway_apply:
+            try:
+                target = putaway_apply(product)
+            except TypeError:
+                try:
+                    target = putaway_apply(product, 1.0)
+                except Exception:
+                    target = False
+            except Exception:
+                target = False
+            if target and target != base_location:
+                return target
+
+        Rule = self.env["stock.putaway.rule"].sudo()
+        if not Rule:
+            return False
+
+        loc_field = "location_in_id" if "location_in_id" in Rule._fields else "location_id" if "location_id" in Rule._fields else False
+        loc_out_field = "location_out_id" if "location_out_id" in Rule._fields else False
+        if not loc_field or not loc_out_field:
+            return False
+        order = "sequence, id" if "sequence" in Rule._fields else "id"
+
+        domain = [(loc_field, "=", base_location.id)]
+        if "company_id" in Rule._fields and base_location.company_id:
+            domain += ["|", ("company_id", "=", False), ("company_id", "=", base_location.company_id.id)]
+
+        candidates = self.env["stock.putaway.rule"].sudo()
+        if "product_id" in Rule._fields:
+            candidates = Rule.search(domain + [("product_id", "=", product.id)], order=order, limit=1)
+        if not candidates and "product_tmpl_id" in Rule._fields and product.product_tmpl_id:
+            candidates = Rule.search(domain + [("product_tmpl_id", "=", product.product_tmpl_id.id)], order=order, limit=1)
+        if not candidates and "product_template_id" in Rule._fields and product.product_tmpl_id:
+            candidates = Rule.search(domain + [("product_template_id", "=", product.product_tmpl_id.id)], order=order, limit=1)
+        if not candidates:
+            cat_field = "product_category_id" if "product_category_id" in Rule._fields else "category_id" if "category_id" in Rule._fields else False
+            if cat_field and product.categ_id:
+                candidates = Rule.search(domain + [(cat_field, "child_of", product.categ_id.id)], order=order, limit=1)
+        if not candidates:
+            candidates = Rule.search(domain, order=order, limit=1)
+
+        return candidates[loc_out_field] if candidates and candidates[loc_out_field] and candidates[loc_out_field] != base_location else False
+
+    def _ab_force_child_source_location_for_restricted_categories(self):
+        blocked_location_ids = self._ab_get_blocked_source_location_ids_from_config()
+        blocked_categ_ids = self._ab_get_blocked_parent_source_category_ids()
+        if not blocked_location_ids or not blocked_categ_ids:
+            return
+
+        candidate_moves = self.filtered(
+            lambda mv: (
+                mv.sale_line_id
+                and mv.product_id
+                and mv.product_id.categ_id
+                and mv.product_id.categ_id.id in blocked_categ_ids
+                and mv.location_id
+                and mv.location_id.id in blocked_location_ids
+                and mv.state not in ("done", "cancel")
+                and mv.picking_type_id
+                and mv.picking_type_id.code == "outgoing"
+            )
+        )
+
+        for move in candidate_moves:
+            target_location = self._ab_get_putaway_target_location(move.location_id, move.product_id)
+            if not target_location or target_location == move.location_id:
+                continue
+            old_location = move.location_id
+            move.write({"location_id": target_location.id})
+            editable_lines = move.move_line_ids.filtered(
+                lambda ml: ml.state not in ("done", "cancel") and ml.location_id == old_location
+            )
+            if editable_lines:
+                editable_lines.write({"location_id": target_location.id})
 
     @api.depends("move_line_ids.quantity", "move_line_ids.control_total_label_ids")
     def _compute_ct_fully_labeled(self):
@@ -624,6 +771,10 @@ class StockMove(models.Model):
             return left <= right
         return False
 
+    def _action_assign(self, force_qty=False):
+        self._ab_force_child_source_location_for_restricted_categories()
+        return super()._action_assign(force_qty=force_qty)
+
     def action_open_pending_delivery_sale_order(self):
         self.ensure_one()
         if not self.ab_sale_order_id:
@@ -704,6 +855,20 @@ class StockMove(models.Model):
         }
         return action
 
+    def action_view_pending_delivery_audit(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Auditoria de acciones"),
+            "res_model": "stock.move.pending.delivery.audit",
+            "view_mode": "tree,form",
+            "domain": [("move_id", "=", self.id)],
+            "target": "current",
+            "context": {
+                "search_default_group_by_action_type": 0,
+            },
+        }
+
     def action_reserve_pending_delivery(self):
         moves = self.filtered(
             lambda mv: mv.state not in ("done", "cancel", "draft")
@@ -721,12 +886,14 @@ class StockMove(models.Model):
         pending_moves = self.browse(pending_moves.ids)
 
         reserved_before = {move.id: move._get_ab_reserved_qty() for move in pending_moves}
+        pending_before = {move.id: float(move.ab_qty_pending or 0.0) for move in pending_moves}
         pending_moves._action_assign()
 
         pending_moves.invalidate_recordset()
         refreshed_moves = self.browse(pending_moves.ids)
 
         reserved_after = {move.id: move._get_ab_reserved_qty() for move in refreshed_moves}
+        pending_after = {move.id: float(move.ab_qty_pending or 0.0) for move in refreshed_moves}
         success = any(
             (reserved_after[mid] or 0.0) > (reserved_before[mid] or 0.0)
             or move._ab_has_reserved_move_lines()
@@ -737,6 +904,24 @@ class StockMove(models.Model):
                 "No fue posible reservar stock para las lineas seleccionadas. "
                 "Revise disponibilidad real, reglas de ubicacion o si el producto ya esta comprometido."
             ))
+        for move in refreshed_moves:
+            before_reserved = reserved_before.get(move.id, 0.0)
+            after_reserved = reserved_after.get(move.id, 0.0)
+            before_pending = pending_before.get(move.id, 0.0)
+            after_pending = pending_after.get(move.id, 0.0)
+            if (
+                round(after_reserved - before_reserved, 6) > 0.0
+                or round(before_pending - after_pending, 6) > 0.0
+                or move._ab_has_reserved_move_lines()
+            ):
+                move._ab_create_pending_delivery_audit_entry(
+                    "reserve",
+                    before_reserved,
+                    after_reserved,
+                    before_pending,
+                    after_pending,
+                    quantity_changed=max(after_reserved - before_reserved, 0.0),
+                )
         try:
             self.env.user.notify_success(message=_("La linea se reservo correctamente."))
         except Exception:
@@ -751,11 +936,29 @@ class StockMove(models.Model):
         )
         if not moves:
             raise UserError(_("Seleccione al menos una linea pendiente valida para liberar reserva."))
+        reserved_before = {move.id: move._get_ab_reserved_qty() for move in moves}
+        pending_before = {move.id: float(move.ab_qty_pending or 0.0) for move in moves}
         for move in moves:
             if hasattr(move, "_do_unreserve"):
                 move._do_unreserve()
             elif move.picking_id and hasattr(move.picking_id, "do_unreserve"):
                 move.picking_id.do_unreserve()
+        moves.invalidate_recordset()
+        refreshed_moves = self.browse(moves.ids)
+        for move in refreshed_moves:
+            after_reserved = move._get_ab_reserved_qty()
+            after_pending = float(move.ab_qty_pending or 0.0)
+            before_reserved = reserved_before.get(move.id, 0.0)
+            before_pending = pending_before.get(move.id, 0.0)
+            if round(before_reserved - after_reserved, 6) > 0.0 or round(after_pending - before_pending, 6) > 0.0:
+                move._ab_create_pending_delivery_audit_entry(
+                    "unreserve",
+                    before_reserved,
+                    after_reserved,
+                    before_pending,
+                    after_pending,
+                    quantity_changed=max(before_reserved - after_reserved, 0.0),
+                )
         try:
             self.env.user.notify_success(message=_("La reserva se libero correctamente."))
         except Exception:

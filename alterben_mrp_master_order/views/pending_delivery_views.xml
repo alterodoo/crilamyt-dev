@@ -42,6 +42,11 @@
                             string="Cancelar"
                             class="btn-link"
                             invisible="ab_qty_pending &lt;= 0"/>
+                    <button name="action_view_pending_delivery_audit"
+                            type="object"
+                            string="Auditoria"
+                            class="btn-link"
+                            invisible="ab_pending_delivery_audit_count &lt;= 0"/>
                     <button name="action_view_delivery_cancellations"
                             type="object"
                             string="Historial"
@@ -73,6 +78,7 @@
                     <field name="company_id" column_invisible="1"/>
                     <field name="product_uom_category_id" column_invisible="1"/>
                     <field name="product_id" optional="show"/>
+                    <field name="ab_source_bucket" string="Ubicacion" optional="show"/>
                     <field name="ab_stock_on_hand" sum="Total" optional="hide"/>
                     <field name="ab_stock_reserved_total" sum="Total" optional="hide"/>
                     <field name="ab_stock_caf" sum="Total" optional="hide"/>
@@ -82,6 +88,7 @@
                     <field name="ab_cancelled_delivery_qty" sum="Total cancelado" optional="show"/>
                     <field name="ab_qty_reserved" sum="Total reservado" optional="show"/>
                     <field name="ab_qty_pending" sum="Total pendiente" optional="show"/>
+                    <field name="ab_pending_delivery_audit_count" string="Auditorias" optional="hide"/>
                     <field name="ab_qty_done_display" sum="Total hecho" optional="hide"/>
                     <field name="product_uom" optional="hide"/>
                     <field name="ab_reservation_status" optional="show"/>

@@ -1,4 +1,4 @@
-from odoo import fields, models, _
+from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
 
@@ -57,6 +57,41 @@ class MrpMasterType(models.Model):
         default=True,
         tracking=True,
     )
+    blocked_parent_source_categ_ids = fields.Many2many(
+        "product.category",
+        "mrp_master_type_blocked_parent_source_categ_rel",
+        "type_id",
+        "categ_id",
+        string="Prohibir consumir desde CAU/CAF padre a estas categorías",
+        help=(
+            "Los productos de estas categorías no podrán validar movimientos saliendo "
+            "desde las bodegas padre configuradas. Deben salir desde ubicaciones hijas/perchas."
+        ),
+    )
+
+    def _get_blocked_parent_source_category_ids(self):
+        self.ensure_one()
+        categ_ids = self.blocked_parent_source_categ_ids.ids
+        if not categ_ids:
+            return set()
+        Category = self.env["product.category"].sudo()
+        return set(Category.search([("id", "child_of", categ_ids)]).ids)
+
+    @api.model
+    def _get_global_blocked_parent_source_category_ids(self):
+        active_types = self.sudo().search([("active", "=", True)])
+        categ_ids = active_types.mapped("blocked_parent_source_categ_ids").ids
+        if not categ_ids:
+            return set()
+        Category = self.env["product.category"].sudo()
+        return set(Category.search([("id", "child_of", categ_ids)]).ids)
+
+    def _is_blocked_parent_source_product(self, product):
+        self.ensure_one()
+        if not product or not product.categ_id:
+            return False
+        blocked_categ_ids = self._get_blocked_parent_source_category_ids()
+        return bool(blocked_categ_ids and product.categ_id.id in blocked_categ_ids)
 
     def _get_parameter_locations(self):
         self.ensure_one()
@@ -94,6 +129,8 @@ class MrpMasterType(models.Model):
             ),
         )
         for move_line in move_lines:
+            if not self._is_blocked_parent_source_product(move_line.product_id):
+                continue
             for key, field_name, message in rules:
                 location = locations.get(key)
                 if not getattr(self, field_name) and location and move_line.location_id == location:
@@ -108,6 +145,8 @@ class MrpMasterType(models.Model):
             ("importados", "allow_put_importados", _("Receiving products in location IMPORTADOS is restricted")),
         )
         for move_line in move_lines:
+            if not self._is_blocked_parent_source_product(move_line.product_id):
+                continue
             for key, field_name, message in rules:
                 location = locations.get(key)
                 if not getattr(self, field_name) and location and move_line.location_dest_id == location:

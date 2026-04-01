@@ -72,6 +72,8 @@ class StockMoveCancelDeliveryWizard(models.TransientModel):
             raise ValidationError(_("La cantidad a cancelar no puede ser mayor a la pendiente por despachar."))
 
         sale_line = move.sale_line_id
+        reserved_before = move._get_ab_reserved_qty()
+        pending_before = self._get_move_pending_qty(move)
         move.env["sale.delivery.cancellation.log"].create({
             "move_id": move.id,
             "sale_line_id": sale_line.id,
@@ -100,5 +102,19 @@ class StockMoveCancelDeliveryWizard(models.TransientModel):
             move.write({"product_uom_qty": new_demand})
             if pending_after > 0 and move.state not in ("done", "cancel", "draft"):
                 move._action_assign()
+
+        move.invalidate_recordset()
+        refreshed_move = move.browse(move.id)
+        if hasattr(refreshed_move, "_ab_create_pending_delivery_audit_entry"):
+            refreshed_move._ab_create_pending_delivery_audit_entry(
+                "cancel",
+                reserved_before,
+                refreshed_move._get_ab_reserved_qty(),
+                pending_before,
+                float(refreshed_move.ab_qty_pending or 0.0),
+                quantity_changed=qty,
+                reason=self.reason,
+                note=self.note or False,
+            )
 
         return {"type": "ir.actions.client", "tag": "reload"}

@@ -55,6 +55,7 @@
                         <field name="allow_consume_cau"/>
                         <field name="allow_consume_caf"/>
                         <field name="allow_consume_importados"/>
+                        <field name="blocked_parent_source_categ_ids" widget="many2many_tags"/>
                     </group>
                     <group string="Control de recepcion por ubicacion">
                         <field name="allow_put_cau"/>

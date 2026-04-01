@@ -55,6 +55,7 @@
     'views/plant_dashboard_views.xml',
     'views/quality_scrap_report_views.xml',
     'views/sale_delivery_cancellation_views.xml',
+    'views/pending_delivery_audit_views.xml',
     'views/stock_return_picking_views.xml',
     'views/sale_order_views.xml',
     'views/stock_picking_batch_views.xml',
