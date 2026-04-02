@@ -35,7 +35,7 @@ class ReportReferenciaProduccion(models.AbstractModel):
         data = data or {}
         master = self._resolve_master(docids, data)
         lines = self._get_lines(master)
-        main_total_qty = sum((line.product_qty or 0.0) for line in lines)
+        main_total_qty = sum((line.cantidad_real or 0.0) for line in lines)
         report_date = data.get('report_date')
         if report_date:
             if isinstance(report_date, str):

@@ -36,6 +36,7 @@ from . import sale_order_line
 from . import sale_delivery_cancellation
 from . import pending_delivery_audit
 from . import sale_bucket_option
+from . import mrp_unbuild
 
 # Asegurar que los modelos se carguen correctamente
 from .mrp_master_order_ct import MrpMasterOrderLineCT

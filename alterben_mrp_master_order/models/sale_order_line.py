@@ -268,7 +268,11 @@ class SaleOrderLine(models.Model):
     def _ab_format_datetime(self, value):
         if not value:
             return False
-        return fields.Datetime.to_string(value)
+        dt_value = fields.Datetime.to_datetime(value)
+        if not dt_value:
+            return False
+        local_dt = fields.Datetime.context_timestamp(self, dt_value)
+        return local_dt.strftime("%Y-%m-%d %H:%M") if local_dt else False
 
     def _ab_get_internal_locations(self):
         self.ensure_one()

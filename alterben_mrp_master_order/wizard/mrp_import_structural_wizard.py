@@ -51,6 +51,7 @@ class MrpImportStructuralWizard(models.TransientModel):
         'cliente': ['cliente'],
         'fecha': ['fecha'],
         'producto': ['producto', 'referencia'],
+        'posicion': ['posicion', 'posición'],
         'piezas': ['piezas', 'pieza'],
         'largo': ['largo'],
         'alto': ['alto', 'ancho', 'anchura'],
@@ -59,12 +60,13 @@ class MrpImportStructuralWizard(models.TransientModel):
     }
     FABRICATION_HEADER_ALIASES = {
         'componentes': ['componentes', 'componentes_producto'],
+        'posicion': ['posicion', 'posición'],
         'por_consumir': ['por consumir', 'por_consumir'],
         'operacion': ['operacion', 'operaciones'],
         'duracion_esperada': ['duracion esperada', 'duracion_esperada'],
         'cantidad_empleados': ['cantidad empleados', 'cantidad_empleados'],
         'producto': ['producto', 'referencia'],
-        'cantidad': ['cantidad', 'cantidad mo'],
+        'cantidad': ['cantidad', 'cantidad mo', 'can'],
         'origen': ['origen'],
         'pedido_original': ['pedido original', 'pedido_original'],
         'desechos': ['desechos', 'desecho', 'scrap'],
@@ -73,7 +75,7 @@ class MrpImportStructuralWizard(models.TransientModel):
     QUOTATION_REQUIRED_HEADERS = ['ruc', 'fecha', 'producto', 'piezas', 'largo', 'alto', 'precio']
     FABRICATION_REQUIRED_HEADERS = [
         'componentes', 'por_consumir', 'operacion', 'duracion_esperada', 'cantidad_empleados',
-        'producto', 'cantidad', 'origen', 'pedido_original', 'desechos', 'centro_trabajo',
+        'producto', 'posicion', 'cantidad', 'origen', 'pedido_original', 'desechos', 'centro_trabajo',
     ]
 
     @api.onchange('create_quotation')
@@ -145,7 +147,8 @@ class MrpImportStructuralWizard(models.TransientModel):
     def _find_sheet(self, workbook_sheets, expected_name):
         expected = self._normalize_text(expected_name)
         for sheet_name, rows in workbook_sheets.items():
-            if self._normalize_text(sheet_name) == expected:
+            normalized_sheet = self._normalize_text(sheet_name)
+            if normalized_sheet == expected or normalized_sheet.startswith(expected):
                 return sheet_name, rows
         return False, []
 
@@ -355,46 +358,51 @@ class MrpImportStructuralWizard(models.TransientModel):
             raise UserError(_("Faltan columnas requeridas en la hoja FABRICACION: %s") % ", ".join(missing))
 
         errors = []
-        groups = []
-        current = False
+        product_groups = {}
         row_offset = 2
         for idx, row in enumerate(lines):
             row_num = idx + row_offset
             if self._is_empty_row(row):
                 continue
             product_raw = (self._get_value(row, header_map, 'producto') or '').strip()
-            if product_raw:
-                if current:
-                    groups.append(current)
-                current = {
-                    'row_start': row_num,
-                    'product_raw': product_raw,
-                    'qty_mo': None,
-                    'pedido_original': False,
-                    'origins': [],
-                    'components': [],
-                    'operations': [],
-                }
-            if not current:
+            if not product_raw:
                 errors.append(_("Fila %s: no hay PRODUCTO para asociar la fila.") % row_num)
                 continue
+            product_key = self._normalize_text(product_raw)
+            current = product_groups.setdefault(product_key, {
+                'row_start': row_num,
+                'product_raw': product_raw,
+                'qty_mo': 0.0,
+                'qty_by_position': {},
+                'pedido_original_values': [],
+                'origins': [],
+                'components': [],
+                'operations': [],
+                'operation_keys': set(),
+            })
+            current['row_start'] = min(current['row_start'], row_num)
 
+            position_value = self._get_value(row, header_map, 'posicion')
+            position_key = str(position_value or '').strip()
             qty_mo_raw = self._get_value(row, header_map, 'cantidad')
             qty_mo = self._to_float(qty_mo_raw, row_num, 'CANTIDAD', errors) if qty_mo_raw not in (None, '') else None
             if qty_mo is not None:
                 if qty_mo <= 0:
                     errors.append(_("Fila %s: CANTIDAD debe ser mayor que cero.") % row_num)
-                elif current['qty_mo'] is None:
-                    current['qty_mo'] = qty_mo
-                elif abs(current['qty_mo'] - qty_mo) > 1e-6:
-                    errors.append(_("Fila %s: CANTIDAD no coincide dentro del mismo bloque de producto.") % row_num)
+                elif not position_key:
+                    errors.append(_("Fila %s: POSICION vacia para la cantidad del producto.") % row_num)
+                else:
+                    previous_qty = current['qty_by_position'].get(position_key)
+                    if previous_qty is None:
+                        current['qty_by_position'][position_key] = qty_mo
+                    elif abs(previous_qty - qty_mo) > 1e-6:
+                        errors.append(_("Fila %s: CANTIDAD no coincide para la misma POSICION del producto.") % row_num)
 
             pedido_original = (self._get_value(row, header_map, 'pedido_original') or '').strip()
             if pedido_original:
-                if not current['pedido_original']:
-                    current['pedido_original'] = pedido_original
-                elif current['pedido_original'] != pedido_original:
-                    errors.append(_("Fila %s: PEDIDO ORIGINAL no coincide dentro del mismo bloque.") % row_num)
+                for pedido in [item.strip() for item in pedido_original.split('/') if item.strip()]:
+                    if pedido not in current['pedido_original_values']:
+                        current['pedido_original_values'].append(pedido)
 
             origin_value = (self._get_value(row, header_map, 'origen') or '').strip()
             if origin_value and origin_value not in current['origins']:
@@ -422,16 +430,35 @@ class MrpImportStructuralWizard(models.TransientModel):
                 if not workcenter_raw:
                     errors.append(_("Fila %s: CENTRO DE TRABAJO vacio para la operacion.") % row_num)
                 else:
-                    current['operations'].append({
-                        'name': operation_raw,
-                        'workcenter': workcenter_raw,
-                        'duration_expected': duration_expected,
-                        'employee_qty': employee_qty,
-                        'row_num': row_num,
-                    })
+                    op_key = (
+                        self._normalize_text(operation_raw),
+                        self._normalize_text(workcenter_raw),
+                    )
+                    if op_key not in current['operation_keys']:
+                        current['operations'].append({
+                            'name': operation_raw,
+                            'workcenter': workcenter_raw,
+                            'duration_expected': duration_expected,
+                            'employee_qty': employee_qty,
+                            'row_num': row_num,
+                        })
+                        current['operation_keys'].add(op_key)
 
-        if current:
-            groups.append(current)
+        if errors:
+            raise UserError("\n".join(errors))
+
+        groups = []
+        for group in product_groups.values():
+            if not group['qty_by_position']:
+                errors.append(_("Fila %s: no hay CANTIDAD valida por POSICION para '%s'.") % (group['row_start'], group['product_raw']))
+                continue
+            group['qty_mo'] = sum(group['qty_by_position'].values())
+            group['pedido_original'] = "/".join(group['pedido_original_values']) if group['pedido_original_values'] else False
+            group.pop('qty_by_position', None)
+            group.pop('pedido_original_values', None)
+            group.pop('operation_keys', None)
+            groups.append(group)
+
         if errors:
             raise UserError("\n".join(errors))
         if not groups:

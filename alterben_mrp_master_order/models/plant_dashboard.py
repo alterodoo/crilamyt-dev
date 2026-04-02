@@ -157,6 +157,21 @@ class MrpPlantDashboard(models.TransientModel):
         production = workorder.production_id
         return production.product_id if production else False
 
+    def _get_unbuild_qty_by_production(self, productions):
+        result = {prod.id: 0.0 for prod in productions}
+        if not productions or "mrp.unbuild" not in self.env:
+            return result
+        Unbuild = self.env["mrp.unbuild"].sudo()
+        if "mo_id" not in Unbuild._fields or "product_qty" not in Unbuild._fields:
+            return result
+        domain = [("mo_id", "in", productions.ids)]
+        if "state" in Unbuild._fields:
+            domain.append(("state", "=", "done"))
+        for record in Unbuild.search(domain):
+            if record.mo_id and record.mo_id.id in result:
+                result[record.mo_id.id] += float(record.product_qty or 0.0)
+        return result
+
     def _get_current_workorder_by_production(self, workorders):
         """Return the single open/current workorder that represents each MO in the dashboard.
 
@@ -557,6 +572,9 @@ class MrpPlantDashboard(models.TransientModel):
         product_ids = set()
         in_process_summary = _get_in_process_summary(self.env, None)
 
+        productions = workorders.mapped("production_id").filtered(lambda p: p)
+        unbuild_qty_by_prod = self._get_unbuild_qty_by_production(productions)
+
         for wo in workorders:
             production = wo.production_id
             product = self._get_workorder_product(wo)
@@ -584,9 +602,13 @@ class MrpPlantDashboard(models.TransientModel):
             metric["total"] += 1
             qty_producing = float(getattr(wo, "qty_producing", 0.0) or 0.0)
             qty_produced = float(getattr(wo, "qty_produced", 0.0) or 0.0)
+            production_net_qty = max(
+                float(getattr(production, "qty_produced", 0.0) or 0.0) - float(unbuild_qty_by_prod.get(production.id, 0.0) or 0.0),
+                0.0,
+            ) if production else 0.0
             is_current_stage = bool(production and current_workorder_by_production.get(production.id) == wo)
             production_pending_qty = max(
-                float(getattr(production, "product_qty", 0.0) or 0.0) - float(getattr(production, "qty_produced", 0.0) or 0.0),
+                float(getattr(production, "product_qty", 0.0) or 0.0) - production_net_qty,
                 0.0,
             ) if production else 0.0
             stage_qty = production_pending_qty if state != "done" else (qty_produced or float(getattr(production, "product_qty", 0.0) or 0.0))
@@ -595,9 +617,9 @@ class MrpPlantDashboard(models.TransientModel):
                 if state != "done" and production:
                     family_bucket["summary"]["_open_production_qty"][production.id] = stage_qty
             if state == "done":
-                metric["qty_finished"] += qty_produced
+                metric["qty_finished"] += production_net_qty or qty_produced
                 if production and self._is_final_finished_product(product) and self._is_today_in_user_tz(getattr(production, "date_finished", False), today=today):
-                    family_bucket["summary"]["_finished_today_qty"][production.id] = float(getattr(production, "product_qty", 0.0) or qty_produced or 0.0)
+                    family_bucket["summary"]["_finished_today_qty"][production.id] = production_net_qty or float(getattr(production, "product_qty", 0.0) or qty_produced or 0.0)
             if production:
                 metric["_production_ids"].add(production.id)
                 if state != "done":
@@ -606,7 +628,7 @@ class MrpPlantDashboard(models.TransientModel):
             if state == "done":
                 metric["done"] += 1
                 metric["state_counts"]["done"] += 1
-                self._add_state_product_detail(metric, "done", product, qty_produced or qty_producing or 0.0)
+                self._add_state_product_detail(metric, "done", product, production_net_qty or qty_produced or qty_producing or 0.0)
             elif state in ("ready", "progress"):
                 metric["active"] += 1
                 metric["state_counts"]["ready"] += 1
@@ -696,7 +718,7 @@ class MrpPlantDashboard(models.TransientModel):
                         product_data["_production_ids"].add(production.id)
                         product_data["production_count"] += 1
                         planned_qty = float(getattr(production, "product_qty", 0.0) or 0.0)
-                        produced_qty = float(getattr(production, "qty_produced", 0.0) or 0.0)
+                        produced_qty = production_net_qty
                         product_data["planned_qty"] += planned_qty
                         product_data["produced_qty"] += produced_qty
                         product_data["pending_mo_qty"] += max(planned_qty - produced_qty, 0.0)

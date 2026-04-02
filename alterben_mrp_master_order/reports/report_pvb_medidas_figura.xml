@@ -20,35 +20,41 @@
                     <style type="text/css">
                         .pvb-figura-table {
                             width: 100%;
-                            font-size: 11px;
+                            font-size: 10.5px;
                             border-collapse: collapse;
                             table-layout: fixed;
                         }
                         .pvb-figura-table th,
                         .pvb-figura-table td {
-                            border: 1px solid #000;
-                            padding: 4px 4px;
+                            border: 0.8px solid #000;
+                            padding: 3px 4px;
                             line-height: 1.15;
                             white-space: nowrap;
                             overflow: hidden;
                             text-overflow: ellipsis;
                         }
+                        .pvb-figura-table .pvb-desc-col {
+                            white-space: normal;
+                            overflow: visible;
+                            text-overflow: clip;
+                            word-break: break-word;
+                        }
                     </style>
                     <table class="table table-sm o_main_table pvb-figura-table">
                         <thead>
                             <tr>
-                                <th style="width:4%;">#</th>
-                                <th style="width:12%;">PEDIDO</th>
-                                <th style="width:14%;">CODIGO</th>
-                                <th style="width:16%;">COD. BARRAS</th>
-                                <th style="width:25%;">DESCRIPCION</th>
-                                <th style="width:8%;">CANT.</th>
-                                <th style="width:6%;">ALTO</th>
-                                <th style="width:6%;">ANCHO</th>
-                                <th style="width:4%;">V1</th>
-                                <th style="width:4%;">V2</th>
-                                <th style="width:5%;">C1</th>
-                                <th style="width:5%;">C2</th>
+                                <th style="width:3.5%;">#</th>
+                                <th style="width:10.5%;">PEDIDO</th>
+                                <th style="width:12%;">CODIGO</th>
+                                <th style="width:8.5%;">COD. BARRAS</th>
+                                <th class="pvb-desc-col" style="width:34.5%;">DESCRIPCION</th>
+                                <th style="width:7%;">CANT.</th>
+                                <th style="width:5.5%;">ALTO</th>
+                                <th style="width:5.5%;">ANCHO</th>
+                                <th style="width:3.5%;">V1</th>
+                                <th style="width:3.5%;">V2</th>
+                                <th style="width:3%;">C1</th>
+                                <th style="width:3%;">C2</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -61,8 +67,8 @@
                                     <td t-esc="l.pedido_original_id.name or ''"/>
                                     <td t-esc="l.product_id.default_code or ''"/>
                                     <td t-esc="l.product_id.barcode or ''"/>
-                                    <td t-esc="l.product_id.name or ''"/>
-                                    <td t-esc="'%.0f' % (l.product_qty or 0.0)"/>
+                                    <td class="pvb-desc-col" t-esc="l.product_id.name or ''"/>
+                                    <td t-esc="'%.0f' % (l.cantidad_real or 0.0)"/>
                                     <td t-esc="'%.0f' % row['alto'] if row['alto'] not in (False, None) else ''"/>
                                     <td t-esc="'%.0f' % row['ancho'] if row['ancho'] not in (False, None) else ''"/>
                                     <td t-esc="'%.1f' % row['v1'] if row['v1'] not in (False, None) else ''"/>

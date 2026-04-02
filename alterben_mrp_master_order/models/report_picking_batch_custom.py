@@ -1,4 +1,4 @@
-from odoo import models
+from odoo import fields, models
 
 
 class ReportPickingBatchCustom(models.AbstractModel):
@@ -234,7 +234,18 @@ class ReportPickingBatchCustom(models.AbstractModel):
             "doc_model": "stock.picking.batch",
             "docs": docs,
             "batch_lines": {batch.id: self._get_batch_lines(batch) for batch in docs},
+            "batch_scheduled_dates": {
+                batch.id: self._format_datetime_for_user(batch.scheduled_date) for batch in docs
+            },
             "batch_destination_labels": {
                 batch.id: self._get_batch_destination_label(batch) for batch in docs
             },
         }
+    def _format_datetime_for_user(self, value, fmt="%Y-%m-%d %H:%M"):
+        if not value:
+            return ""
+        dt_value = fields.Datetime.to_datetime(value)
+        if not dt_value:
+            return ""
+        local_dt = fields.Datetime.context_timestamp(self, dt_value)
+        return local_dt.strftime(fmt) if local_dt else ""

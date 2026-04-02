@@ -8,6 +8,11 @@ BLOCKED_SOURCE_LOCATIONS_PARAM = "alterben_mrp_master_order.blocked_source_locat
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
+    x_studio_bodegas = fields.Many2one(
+        "alterben.bucket.option",
+        string="Bodega",
+        help="Campo de compatibilidad para vistas heredadas y datos historicos de Studio.",
+    )
     control_total_label_count = fields.Integer(compute="_compute_control_total_label_count")
     ab_entrega_inmediata_display = fields.Char(
         string="Entrega inmediata",

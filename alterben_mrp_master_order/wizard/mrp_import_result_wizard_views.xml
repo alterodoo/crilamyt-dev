@@ -17,7 +17,8 @@
                                     <field name="origin" string="Errores / Origen"/>
                                     <field name="name"/>
                                     <field name="product_id"/>
-                                    <field name="product_qty"/>
+                                    <field name="product_qty" sum="Total"/>
+                                    <field name="ab_consumed_qty" string="Consumido" sum="Total"/>
                                 </tree>
                             </field>
                         </page>
@@ -26,7 +27,7 @@
                                 <tree>
                                     <field name="name"/>
                                     <field name="partner_id"/>
-                                    <field name="amount_total"/>
+                                    <field name="amount_total" sum="Total"/>
                                 </tree>
                             </field>
                         </page>
@@ -36,7 +37,7 @@
                                     <field name="import_stock_status"/>
                                     <field name="name"/>
                                     <field name="product_id"/>
-                                    <field name="scrap_qty"/>
+                                    <field name="scrap_qty" sum="Total"/>
                                     <field name="production_id"/>
                                     <field name="state"/>
                                 </tree>

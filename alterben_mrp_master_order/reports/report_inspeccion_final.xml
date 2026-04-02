@@ -45,8 +45,8 @@
                             font-weight: bold;
                         }
                         .if-box {
-                            width: 22px;
-                            height: 16px;
+                            width: 28px;
+                            height: 20px;
                             display: inline-block;
                             border: 1px solid #000;
                             margin-left: 4px;
@@ -153,22 +153,22 @@
                                 </tr>
                                 <tr>
                                     <th class="if-vertical-cell" style="width:30px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
-                                        R<br/>e<br/>c<br/>i<br/>c<br/>l<br/>o
+                                        R<br/>E<br/>C<br/>I<br/>C<br/>L<br/>O
                                     </th>
                                     <th class="if-vertical-cell" style="width:30px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
-                                        A<br/>l<br/>m<br/>a<br/>c<br/>é<br/>n
+                                        A<br/>L<br/>M<br/>A<br/>C<br/>E<br/>N
                                     </th>
                                     <th class="if-vertical-cell" style="width:30px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
-                                        S<br/>e<br/>g<br/>u<br/>n<br/>d<br/>a
+                                        S<br/>E<br/>G<br/>U<br/>N<br/>D<br/>A
                                     </th>
                                     <th class="if-vertical-cell" style="width:30px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
-                                        D<br/>e<br/>s<br/>t<br/>r<br/>u<br/>i<br/>d<br/>o<br/>s
+                                        D<br/>E<br/>S<br/>T<br/>R<br/>U<br/>I<br/>D<br/>O<br/>S
                                     </th>
                                     <th class="if-vertical-cell" style="width:40px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
-                                        V<br/>i<br/>t<br/>r<br/>i<br/>f<br/>i<br/>c<br/>a<br/>c<br/>i<br/>ó<br/>n
+                                        V<br/>I<br/>T<br/>R<br/>I<br/>F<br/>I<br/>C<br/>A<br/>C<br/>I<br/>O<br/>N
                                     </th>
                                     <th class="if-vertical-cell" style="width:40px; padding:0; text-align:center; font-size:9px; line-height:1.2;">
-                                        C<br/>a<br/>n<br/>t<br/>i<br/>d<br/>a<br/>d<br/><br/>T<br/>o<br/>t<br/>a<br/>l
+                                        C<br/>A<br/>N<br/>T<br/>I<br/>D<br/>A<br/>D<br/><br/>T<br/>O<br/>T<br/>A<br/>L
                                     </th>
                                 </tr>
                             </thead>
@@ -185,7 +185,7 @@
                                     <td class="if-center">&#160;</td>
                                     <td class="if-center">
                                         <t t-if="l">
-                                            <t t-esc="'%d' % int(round(l.product_qty or 0.0))"/>
+                                            <t t-esc="'%d' % int(round(l.cantidad_real or 0.0))"/>
                                         </t>
                                         <t t-else="">&#160;</t>
                                     </td>
@@ -220,3 +220,4 @@
         </template>
     </data>
 </odoo>
+

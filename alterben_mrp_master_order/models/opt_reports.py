@@ -1,6 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
 from datetime import datetime, time, timedelta
 import math
+import pytz
 import re
 import unicodedata
 from odoo import api, fields, models, _
@@ -11,6 +12,53 @@ def _end_of_day(date_value):
     if not date_value:
         return False
     return datetime.combine(date_value, time.max)
+
+
+def _get_user_tz(env):
+    return pytz.timezone(env.context.get("tz") or env.user.tz or "UTC")
+
+
+def _local_day_bounds_to_utc(env, date_from=False, date_to=False):
+    user_tz = _get_user_tz(env)
+    start_utc = False
+    end_utc = False
+    if date_from:
+        local_start = user_tz.localize(datetime.combine(date_from, time.min))
+        start_utc = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
+    if date_to:
+        local_end = user_tz.localize(datetime.combine(date_to, time.max))
+        end_utc = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
+    return start_utc, end_utc
+
+
+def _format_datetime_for_user(env, value, fmt="%Y-%m-%d %H:%M"):
+    if not value:
+        return ""
+    dt_value = fields.Datetime.to_datetime(value)
+    if not dt_value:
+        return ""
+    local_dt = fields.Datetime.context_timestamp(env.user, dt_value)
+    return local_dt.strftime(fmt) if local_dt else ""
+
+
+def _get_unbuild_qty_by_production(env, productions):
+    result = {}
+    prods = productions.filtered(lambda p: p)
+    if not prods or "mrp.unbuild" not in env:
+        return result
+    Unbuild = env["mrp.unbuild"].sudo()
+    if "mo_id" not in Unbuild._fields or "product_qty" not in Unbuild._fields:
+        return result
+    domain = [("mo_id", "in", prods.ids)]
+    if "state" in Unbuild._fields:
+        domain.append(("state", "=", "done"))
+    records = Unbuild.search(domain)
+    for record in records:
+        mo = record.mo_id
+        if not mo:
+            continue
+        result[mo.id] = float(result.get(mo.id, 0.0) or 0.0) + float(record.product_qty or 0.0)
+    return result
 
 
 def _get_report_sales_days(env):
@@ -597,7 +645,7 @@ def _get_sales_maps(env, product_ids, report_date):
 
 def _get_in_process_productions(env, report_date, include_done=False):
     Production = env["mrp.production"].sudo()
-    date_end = _end_of_day(report_date)
+    _date_start_utc, date_end_utc = _local_day_bounds_to_utc(env, date_to=report_date)
     states = ["confirmed", "progress", "planned", "to_close"]
     if include_done:
         states.append("done")
@@ -605,18 +653,18 @@ def _get_in_process_productions(env, report_date, include_done=False):
         ("state", "in", states),
         ("picking_type_id.active", "=", True),
     ]
-    if date_end:
+    if date_end_utc:
         if "date_planned_start" in Production._fields:
             date_field = "date_planned_start"
         elif "date_start" in Production._fields:
             date_field = "date_start"
         else:
             date_field = "create_date"
-        domain.append((date_field, "<=", fields.Datetime.to_string(date_end)))
+        domain.append((date_field, "<=", fields.Datetime.to_string(date_end_utc)))
     return Production.search(domain)
 
 
-def _get_production_effective_qty(production):
+def _get_production_effective_qty(production, unbuild_qty=0.0):
     if not production:
         return 0.0
     planned_qty = float(getattr(production, "product_qty", 0.0) or 0.0)
@@ -627,6 +675,7 @@ def _get_production_effective_qty(production):
         qty = max(qty, float(getattr(mv, "quantity_done", 0.0) or 0.0))
     if qty <= 0.0:
         qty = planned_qty
+    qty -= float(unbuild_qty or 0.0)
     return max(qty, 0.0)
 
 
@@ -659,12 +708,12 @@ def _get_scrap_done_datetime(scrap):
 
 def _get_in_process_scrap_summary(env, report_date):
     Scrap = env["stock.scrap"].sudo()
-    date_end = _end_of_day(report_date)
+    _date_start_utc, date_end_utc = _local_day_bounds_to_utc(env, date_to=report_date)
     domain = []
     if "state" in Scrap._fields:
         domain.append(("state", "=", "done"))
-    if date_end and "create_date" in Scrap._fields:
-        domain.append(("create_date", "<=", fields.Datetime.to_string(date_end)))
+    if date_end_utc and "create_date" in Scrap._fields:
+        domain.append(("create_date", "<=", fields.Datetime.to_string(date_end_utc)))
 
     scraps = Scrap.search(domain)
     result = {}
@@ -695,6 +744,7 @@ def _build_in_process_summary(env, report_date):
     all_productions = _get_in_process_productions(env, report_date, include_done=True)
     open_productions = _get_in_process_productions(env, report_date, include_done=False)
     scrap_summary = _get_in_process_scrap_summary(env, report_date)
+    unbuild_qty_by_prod = _get_unbuild_qty_by_production(env, all_productions)
     payload = {}
     stage_order = ["s1", "s2", "s3", "pt"]
 
@@ -717,7 +767,7 @@ def _build_in_process_summary(env, report_date):
                 "product_ids": {stage: False for stage in stage_order},
             }
         )
-        qty = _get_production_effective_qty(prod)
+        qty = _get_production_effective_qty(prod, unbuild_qty=unbuild_qty_by_prod.get(prod.id, 0.0))
         bucket["stage_created"][kind] += qty
         if prod.product_id and not bucket["product_ids"][kind]:
             bucket["product_ids"][kind] = prod.product_id.id
@@ -1964,16 +2014,16 @@ class MRPReportRawMaterials(models.TransientModel):
                 })
 
         Production = self.env["mrp.production"]
-        date_end = _end_of_day(self.report_date)
+        _date_start_utc, date_end_utc = _local_day_bounds_to_utc(self.env, date_to=self.report_date)
         domain = [("state", "in", ["confirmed", "progress"]) ]
-        if date_end:
+        if date_end_utc:
             if "date_planned_start" in Production._fields:
                 date_field = "date_planned_start"
             elif "date_start" in Production._fields:
                 date_field = "date_start"
             else:
                 date_field = "create_date"
-            domain.append((date_field, "<=", fields.Datetime.to_string(date_end)))
+            domain.append((date_field, "<=", fields.Datetime.to_string(date_end_utc)))
         productions = Production.search(domain)
         comp_in_process = {}
         component_in_process_details = {}
@@ -2213,8 +2263,7 @@ class MRPReportRawMaterialConsumption(models.TransientModel):
         if self.date_from and self.date_to and self.date_from > self.date_to:
             raise UserError(_("La fecha Desde no puede ser mayor que la fecha Hasta."))
 
-        date_from_dt = fields.Datetime.to_datetime(datetime.combine(self.date_from, time.min)) if self.date_from else False
-        date_to_dt = fields.Datetime.to_datetime(datetime.combine(self.date_to, time.max)) if self.date_to else False
+        date_from_dt, date_to_dt = _local_day_bounds_to_utc(self.env, self.date_from, self.date_to)
 
         raw_allowed_categ_ids = set()
         if self.raw_categ_ids:
@@ -2245,6 +2294,51 @@ class MRPReportRawMaterialConsumption(models.TransientModel):
         scrap_move_ids = set()
         if "move_id" in Scrap._fields:
             scrap_move_ids = set(scraps.mapped("move_id").ids)
+
+        unbuild_returned_grouped = defaultdict(float)
+        if "unbuild_id" in Move._fields and "mrp.unbuild" in self.env:
+            Unbuild = self.env["mrp.unbuild"].sudo()
+            unbuild_domain = []
+            if "mo_id" in Unbuild._fields:
+                unbuild_domain.append(("mo_id", "!=", False))
+            if "state" in Unbuild._fields:
+                unbuild_domain.append(("state", "=", "done"))
+            unbuilds = Unbuild.search(unbuild_domain)
+            if unbuilds:
+                unbuild_moves = Move.search([
+                    ("unbuild_id", "in", unbuilds.ids),
+                    ("state", "=", "done"),
+                ], order="unbuild_id, product_id, id")
+                for move in unbuild_moves:
+                    unbuild = move.unbuild_id
+                    production = unbuild.mo_id if unbuild and "mo_id" in unbuild._fields else False
+                    raw_product = move.product_id
+                    finished_product = production.product_id if production else False
+                    if not production or not raw_product:
+                        continue
+                    if finished_product and raw_product == finished_product:
+                        continue
+                    if self.raw_product_ids and raw_product not in self.raw_product_ids:
+                        continue
+                    if raw_allowed_categ_ids and raw_product.categ_id.id not in raw_allowed_categ_ids:
+                        continue
+                    if finished_allowed_categ_ids and finished_product and finished_product.categ_id.id not in finished_allowed_categ_ids:
+                        continue
+
+                    done_dt = _get_move_done_datetime(move)
+                    if date_from_dt and done_dt and done_dt < date_from_dt:
+                        continue
+                    if date_to_dt and done_dt and done_dt > date_to_dt:
+                        continue
+                    if (date_from_dt or date_to_dt) and not done_dt:
+                        continue
+
+                    qty = _get_move_consumed_qty(move)
+                    if abs(qty) <= 1e-9:
+                        continue
+                    uom = move.product_uom if getattr(move, "product_uom", False) else raw_product.uom_id
+                    key = (production.id, raw_product.id, uom.id if uom else raw_product.uom_id.id)
+                    unbuild_returned_grouped[key] += qty
 
         moves = Move.search(domain, order="raw_material_production_id, product_id, id")
         grouped = {}
@@ -2372,7 +2466,36 @@ class MRPReportRawMaterialConsumption(models.TransientModel):
             raise UserError(_("No hay consumos de materia prima para los filtros seleccionados."))
 
         for key, bucket in grouped.items():
+            bucket["qty_consumed"] = float(bucket.get("qty_consumed", 0.0) or 0.0) - float(unbuild_returned_grouped.get(key, 0.0) or 0.0)
             bucket["qty_scrap"] = float(scrap_grouped.get(key, 0.0) or 0.0)
+
+        for key, returned_qty in unbuild_returned_grouped.items():
+            if key in grouped:
+                continue
+            production_id, raw_product_id, uom_id = key
+            production = self.env["mrp.production"].browse(production_id)
+            raw_product = self.env["product.product"].browse(raw_product_id)
+            finished_product = production.product_id if production else False
+            grouped[key] = {
+                "wizard_id": self.id,
+                "date_done": False,
+                "production_id": production.id if production else False,
+                "mo_name": production.name or "" if production else "",
+                "pedido_original": _get_production_original_order_label(production) if production else "",
+                "origin_ref": getattr(production, "origin", False) or "" if production else "",
+                "source_location_name": "",
+                "finished_product_id": finished_product.id if finished_product else False,
+                "finished_product_code": finished_product.default_code or "" if finished_product else "",
+                "finished_product_name": finished_product.name or "" if finished_product else "",
+                "finished_categ_id": finished_product.categ_id.id if finished_product and finished_product.categ_id else False,
+                "raw_product_id": raw_product.id,
+                "raw_product_code": raw_product.default_code or "",
+                "raw_product_name": raw_product.name or "",
+                "raw_categ_id": raw_product.categ_id.id if raw_product.categ_id else False,
+                "uom_id": uom_id,
+                "qty_consumed": -float(returned_qty or 0.0),
+                "qty_scrap": 0.0,
+            }
 
         self.line_ids.unlink()
         self.env["mrp.report.raw_material_consumption.line"].create(list(grouped.values()))
@@ -2473,10 +2596,10 @@ class MRPReportSalesNoStock(models.TransientModel):
 
         Product = self.env["product.product"]
         SaleLine = self.env["sale.order.line"]
-        date_end = _end_of_day(self.report_date)
+        _date_start_utc, date_end_utc = _local_day_bounds_to_utc(self.env, date_to=self.report_date)
         domain = [("order_id.state", "in", ["sale", "done"])]
-        if date_end:
-            domain.append(("order_id.date_order", "<=", fields.Datetime.to_string(date_end)))
+        if date_end_utc:
+            domain.append(("order_id.date_order", "<=", fields.Datetime.to_string(date_end_utc)))
         qty_net_field = "ab_qty_to_deliver_net" if "ab_qty_to_deliver_net" in SaleLine._fields else None
         qty_field = "qty_to_deliver" if "qty_to_deliver" in SaleLine._fields else None
         sales_detail_map = {}
@@ -2494,8 +2617,8 @@ class MRPReportSalesNoStock(models.TransientModel):
                     "sale_order": line.order_id.name,
                     "customer": line.order_id.partner_id.display_name if line.order_id.partner_id else "",
                     "qty": qty_to_deliver,
-                    "order_date": fields.Datetime.to_string(line.order_id.date_order) if getattr(line.order_id, "date_order", False) else "",
-                    "delivery_date": fields.Datetime.to_string(getattr(line.order_id, "commitment_date", False) or False) if getattr(line.order_id, "commitment_date", False) else "",
+                    "order_date": _format_datetime_for_user(self.env, line.order_id.date_order) if getattr(line.order_id, "date_order", False) else "",
+                    "delivery_date": _format_datetime_for_user(self.env, getattr(line.order_id, "commitment_date", False) or False) if getattr(line.order_id, "commitment_date", False) else "",
                 })
             prio_map = {}
         elif qty_field and getattr(SaleLine._fields[qty_field], "store", False):
@@ -2510,8 +2633,8 @@ class MRPReportSalesNoStock(models.TransientModel):
                     "sale_order": line.order_id.name,
                     "customer": line.order_id.partner_id.display_name if line.order_id.partner_id else "",
                     "qty": qty_to_deliver,
-                    "order_date": fields.Datetime.to_string(line.order_id.date_order) if getattr(line.order_id, "date_order", False) else "",
-                    "delivery_date": fields.Datetime.to_string(getattr(line.order_id, "commitment_date", False) or False) if getattr(line.order_id, "commitment_date", False) else "",
+                    "order_date": _format_datetime_for_user(self.env, line.order_id.date_order) if getattr(line.order_id, "date_order", False) else "",
+                    "delivery_date": _format_datetime_for_user(self.env, getattr(line.order_id, "commitment_date", False) or False) if getattr(line.order_id, "commitment_date", False) else "",
                 })
             prio_map = {}
         else:
@@ -2529,8 +2652,8 @@ class MRPReportSalesNoStock(models.TransientModel):
                     "sale_order": line.order_id.name,
                     "customer": line.order_id.partner_id.display_name if line.order_id.partner_id else "",
                     "qty": qty_to_deliver,
-                    "order_date": fields.Datetime.to_string(line.order_id.date_order) if getattr(line.order_id, "date_order", False) else "",
-                    "delivery_date": fields.Datetime.to_string(getattr(line.order_id, "commitment_date", False) or False) if getattr(line.order_id, "commitment_date", False) else "",
+                    "order_date": _format_datetime_for_user(self.env, line.order_id.date_order) if getattr(line.order_id, "date_order", False) else "",
+                    "delivery_date": _format_datetime_for_user(self.env, getattr(line.order_id, "commitment_date", False) or False) if getattr(line.order_id, "commitment_date", False) else "",
                 })
             prio_map = {}
 

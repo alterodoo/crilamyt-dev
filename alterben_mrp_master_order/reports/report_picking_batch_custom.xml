@@ -8,9 +8,10 @@
 
         <template id="report_picking_batch_custom">
             <t t-call="web.html_container">
-                <t t-foreach="docs" t-as="doc">
-                    <t t-set="lines" t-value="batch_lines.get(doc.id, [])"/>
-                    <t t-set="destination_label" t-value="batch_destination_labels.get(doc.id, '')"/>
+                    <t t-foreach="docs" t-as="doc">
+                      <t t-set="lines" t-value="batch_lines.get(doc.id, [])"/>
+                      <t t-set="scheduled_date_label" t-value="batch_scheduled_dates.get(doc.id, '')"/>
+                      <t t-set="destination_label" t-value="batch_destination_labels.get(doc.id, '')"/>
                     <t t-call="web.external_layout">
                         <div class="page">
                             <style>
@@ -91,7 +92,7 @@
                                     <tr>
                                         <td><strong>Lote:</strong> <span t-esc="doc.name"/></td>
                                         <td><strong>Estado:</strong> <span t-esc="doc.state or ''"/></td>
-                                        <td><strong>Fecha programada:</strong> <span t-esc="doc.scheduled_date or ''"/></td>
+                                        <td><strong>Fecha programada:</strong> <span t-esc="scheduled_date_label"/></td>
                                     </tr>
                                     <tr>
                                         <td colspan="3">

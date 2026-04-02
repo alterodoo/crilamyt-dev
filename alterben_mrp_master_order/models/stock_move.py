@@ -1,3 +1,6 @@
+from datetime import datetime, time
+import pytz
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
@@ -642,9 +645,12 @@ class StockMove(models.Model):
         if operator != "=" or value not in ("late", "today", "future", "undated"):
             return []
 
-        now = fields.Datetime.now()
-        start_today = fields.Datetime.to_string(now.replace(hour=0, minute=0, second=0, microsecond=0))
-        end_today = fields.Datetime.to_string(now.replace(hour=23, minute=59, second=59, microsecond=0))
+        user_tz = pytz.timezone(self.env.context.get("tz") or self.env.user.tz or "UTC")
+        today = fields.Date.context_today(self)
+        local_start = user_tz.localize(datetime.combine(today, time.min))
+        local_end = user_tz.localize(datetime.combine(today, time.max))
+        start_today = fields.Datetime.to_string(local_start.astimezone(pytz.UTC).replace(tzinfo=None))
+        end_today = fields.Datetime.to_string(local_end.astimezone(pytz.UTC).replace(tzinfo=None))
         mapping = {
             "undated": [("ab_delivery_date", "=", False)],
             "late": [("ab_delivery_date", "!=", False), ("ab_delivery_date", "<", start_today)],

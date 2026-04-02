@@ -47,7 +47,7 @@ class ReportInspeccionFinal(models.AbstractModel):
         total_almacen = sum(getattr(l, 'almacen_qty', 0) or 0 for l in lines) if lines else 0
         total_segunda = sum(getattr(l, 'segunda_qty', 0) or 0 for l in lines) if lines else 0
         total_destruidos = sum(getattr(l, 'destruidos_qty', 0) or 0 for l in lines) if lines else 0
-        total_qty = sum(lines.mapped('product_qty')) if lines else 0.0
+        total_qty = sum(lines.mapped('cantidad_real')) if lines else 0.0
         total_vitrificacion = sum(1 for l in lines if getattr(l, 'vitrificacion_ok', False)) if lines else 0
         now_utc = fields.Datetime.now()
         now_tz = fields.Datetime.context_timestamp(self, now_utc)

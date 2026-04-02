@@ -35,6 +35,75 @@ class MrpImportWizard(models.TransientModel):
     file = fields.Binary(string="Archivo Excel/CSV", required=True)
     filename = fields.Char(string="Nombre de archivo")
 
+    def _to_float(self, value, row_num, column_name, errors, allow_zero=True):
+        if value is None:
+            return None
+        text = str(value).strip().replace(" ", "")
+        if not text:
+            return None
+        if "," in text and "." in text:
+            if text.rfind(",") > text.rfind("."):
+                text = text.replace(".", "").replace(",", ".")
+            else:
+                text = text.replace(",", "")
+        else:
+            text = text.replace(",", ".")
+        try:
+            number = float(text)
+        except Exception:
+            errors.append(_("Fila %s, columna %s: valor invÃ¡lido '%s'.") % (row_num, column_name, value))
+            return None
+        if number < 0 or (not allow_zero and number <= 0):
+            if allow_zero:
+                errors.append(_("Fila %s, columna %s: no puede ser negativo.") % (row_num, column_name))
+            else:
+                errors.append(_("Fila %s, columna %s: debe ser mayor que 0.") % (row_num, column_name))
+            return None
+        return number
+
+    def _apply_consumed_qty_to_mo(self, mo, component_product, consumed_qty):
+        self.ensure_one()
+        if consumed_qty is None or not component_product:
+            return
+
+        raw_moves = mo.move_raw_ids.filtered(
+            lambda mv: mv.state != 'cancel' and mv.product_id == component_product
+        ).sorted(key=lambda mv: (mv.id,))
+        if not raw_moves:
+            raise UserError(_(
+                "La OF %s no tiene movimientos de materia prima para el componente %s."
+            ) % (mo.display_name, component_product.display_name))
+
+        qty_field = False
+        for field_name in ('quantity', 'quantity_done', 'qty_done'):
+            if field_name in raw_moves._fields:
+                qty_field = field_name
+                break
+        if not qty_field:
+            raise UserError(_("No existe un campo de cantidad consumida compatible en stock.move."))
+
+        demand_by_move = {}
+        total_demand = 0.0
+        for move in raw_moves:
+            demand = float(getattr(move, 'product_uom_qty', 0.0) or 0.0)
+            demand_by_move[move.id] = demand
+            total_demand += demand
+
+        remaining = float(consumed_qty or 0.0)
+        for index, move in enumerate(raw_moves):
+            if index == len(raw_moves) - 1:
+                move_qty = remaining
+            elif total_demand > 0:
+                ratio = demand_by_move[move.id] / total_demand
+                move_qty = round(consumed_qty * ratio, 6)
+                remaining -= move_qty
+            else:
+                move_qty = 0.0
+            move_vals = {qty_field: move_qty}
+            if "picked" in move._fields:
+                move_vals["picked"] = True
+            move.write(move_vals)
+
     def _read_lines(self):
         """Return a list[dict] with the parsed rows."""
         self.ensure_one()
@@ -352,6 +421,7 @@ class MrpImportWizard(models.TransientModel):
                 pedido_original = (_get_value(row, 'PEDIDO_ORIGINAL') or '').strip()
                 qty_raw = (_get_value(row, 'PRODUCT_QTY') or '').strip()
                 scrap_qty_raw = (_get_value(row, 'SCRAP_QTY') or '').strip()
+                consumed_qty_raw = (_get_value(row, 'CONSUMIDO') or '').strip()
 
                 if not product_xmlid:
                     errores.append(_("Fila %s, columna PRODUCTO/ID EXTERNO: valor vacío.") % row_num)
@@ -367,26 +437,20 @@ class MrpImportWizard(models.TransientModel):
                     continue
                 if not qty_raw:
                     errores.append(_("Fila %s, columna PRODUCT_QTY: valor vacío.") % row_num)
-                    continue
-
-                try:
-                    qty = float(qty_raw)
-                except Exception:
-                    errores.append(_("Fila %s, columna PRODUCT_QTY: valor inválido '%s'.") % (row_num, qty_raw))
-                    continue
-                if qty <= 0:
-                    errores.append(_("Fila %s, columna PRODUCT_QTY: debe ser mayor que 0.") % row_num)
+                    continue                qty = self._to_float(qty_raw, row_num, 'PRODUCT_QTY', errores, allow_zero=False)
+                if qty is None:
                     continue
 
                 scrap_qty = 0.0
                 if scrap_qty_raw:
-                    try:
-                        scrap_qty = float(scrap_qty_raw)
-                    except Exception:
-                        errores.append(_("Fila %s, columna SCRAP_QTY: valor inválido '%s'.") % (row_num, scrap_qty_raw))
+                    scrap_qty = self._to_float(scrap_qty_raw, row_num, 'SCRAP_QTY', errores)
+                    if scrap_qty is None:
                         continue
-                    if scrap_qty < 0:
-                        errores.append(_("Fila %s, columna SCRAP_QTY: no puede ser negativo.") % row_num)
+
+                consumed_qty = None
+                if consumed_qty_raw:
+                    consumed_qty = self._to_float(consumed_qty_raw, row_num, 'CONSUMIDO', errores)
+                    if consumed_qty is None:
                         continue
 
                 product = self._resolve_xml_id(product_xmlid, 'product.product', row_num, 'PRODUCTO/ID EXTERNO', errores)
@@ -432,6 +496,12 @@ class MrpImportWizard(models.TransientModel):
                 }
                 mo = mrp_production.create(mo_vals)
                 mo.action_confirm()
+                try:
+                    if consumed_qty is not None:
+                        self._apply_consumed_qty_to_mo(mo, scrap_product, consumed_qty)
+                except Exception:
+                    mo.unlink()
+                    raise
                 created_mo_ids.append(mo.id)
 
                 if scrap_qty > 0:
@@ -610,3 +680,5 @@ class MrpImportWizard(models.TransientModel):
             'res_id': result.id,
             'target': 'new',
         }
+
+

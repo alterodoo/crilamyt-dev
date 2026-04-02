@@ -15,7 +15,6 @@
  'category': 'Manufacturing',
     'data': [
     # 1. Security
-    'security/control_total_security.xml',
     'security/ir.model.access.xml',
     'security/ir.model.access.csv',
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, time
+import pytz
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
@@ -15,6 +16,23 @@ def _end_of_day(date_value):
     if not date_value:
         return False
     return datetime.combine(date_value, time.max)
+
+
+def _get_user_tz(env):
+    return pytz.timezone(env.context.get("tz") or env.user.tz or "UTC")
+
+
+def _local_day_bounds_to_utc(env, date_from=False, date_to=False):
+    user_tz = _get_user_tz(env)
+    start_utc = False
+    end_utc = False
+    if date_from:
+        local_start = user_tz.localize(datetime.combine(date_from, time.min))
+        start_utc = local_start.astimezone(pytz.UTC).replace(tzinfo=None)
+    if date_to:
+        local_end = user_tz.localize(datetime.combine(date_to, time.max))
+        end_utc = local_end.astimezone(pytz.UTC).replace(tzinfo=None)
+    return start_utc, end_utc
 
 
 class MRPReportQualityScrap(models.TransientModel):
@@ -290,8 +308,9 @@ class MRPReportQualityScrap(models.TransientModel):
 
         self.line_ids.unlink()
 
-        date_from = fields.Datetime.to_string(_start_of_day(self.date_from))
-        date_to = fields.Datetime.to_string(_end_of_day(self.date_to))
+        date_from_utc, date_to_utc = _local_day_bounds_to_utc(self.env, self.date_from, self.date_to)
+        date_from = fields.Datetime.to_string(date_from_utc) if date_from_utc else False
+        date_to = fields.Datetime.to_string(date_to_utc) if date_to_utc else False
 
         Alert = self.env["quality.alert"].sudo()
         Scrap = self.env["stock.scrap"].sudo()

@@ -2275,6 +2275,21 @@ class MrpMasterOrderLine(models.Model):
             result[prod.id][stage] += qty
         return result
 
+    def _get_unbuild_totals_by_production(self, productions):
+        result = {prod.id: 0.0 for prod in productions}
+        if not productions or "mrp.unbuild" not in self.env:
+            return result
+        Unbuild = self.env["mrp.unbuild"]
+        if "mo_id" not in Unbuild._fields or "product_qty" not in Unbuild._fields:
+            return result
+        domain = [("mo_id", "in", productions.ids)]
+        if "state" in Unbuild._fields:
+            domain.append(("state", "=", "done"))
+        for record in Unbuild.search(domain):
+            if record.mo_id and record.mo_id.id in result:
+                result[record.mo_id.id] += float(record.product_qty or 0.0)
+        return result
+
     def _compute_station_quantities(self):
         productions = self.mapped('production_id').filtered(lambda p: p)
         scrap_by_stage = self._get_scrap_by_stage(productions)
@@ -2359,6 +2374,7 @@ class MrpMasterOrderLine(models.Model):
         workorders = productions.workorder_ids
         wo_qty_map = {wo.id: wo.qty_produced or 0.0 for wo in workorders}
         scrap_by_stage = self._get_scrap_by_stage(productions)
+        unbuild_by_production = self._get_unbuild_totals_by_production(productions)
         ens_qty_by_prod = {}
         for line in self:
             if line.production_id and line.master_id_ensamblado and line.production_id.id not in ens_qty_by_prod:
@@ -2370,17 +2386,17 @@ class MrpMasterOrderLine(models.Model):
                 stage_scrap = scrap_by_stage.get(production.id, {})
                 if line.master_id_ensamblado:
                     base = ens_qty_by_prod.get(production.id, line.cantidad_ensamblada or 0.0)
-                    qty = base - (stage_scrap.get('ensamblado', 0.0) or 0.0)
+                    qty = base - (stage_scrap.get('ensamblado', 0.0) or 0.0) - (unbuild_by_production.get(production.id, 0.0) or 0.0)
                 elif line.master_id_prevaciado:
                     base = line.qty_to_prevaciar or 0.0
-                    qty = base - (stage_scrap.get('prevaciado', 0.0) or 0.0)
+                    qty = base - (stage_scrap.get('prevaciado', 0.0) or 0.0) - (unbuild_by_production.get(production.id, 0.0) or 0.0)
                 elif line.master_id_inspeccion_final:
                     base = line.qty_to_liberar or 0.0
-                    qty = base - (stage_scrap.get('inspeccion_final', 0.0) or 0.0)
+                    qty = base - (stage_scrap.get('inspeccion_final', 0.0) or 0.0) - (unbuild_by_production.get(production.id, 0.0) or 0.0)
             elif production:
                 related_wos = production.workorder_ids
                 produced = sum(wo_qty_map.get(wo.id, 0.0) for wo in related_wos)
-                qty = produced - (line.scrap_qty or 0.0)
+                qty = produced - (line.scrap_qty or 0.0) - (unbuild_by_production.get(production.id, 0.0) or 0.0)
             line.cantidad_real = qty if qty > 0 else 0.0
 
     @api.depends('product_id', 'product_id.default_code')

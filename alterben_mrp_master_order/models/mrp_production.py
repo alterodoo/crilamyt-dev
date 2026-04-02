@@ -1,8 +1,34 @@
-from odoo import models
+from odoo import api, fields, models
 
 
 class MrpProduction(models.Model):
     _inherit = "mrp.production"
+
+    ab_consumed_qty = fields.Float(
+        string="Consumido",
+        compute="_compute_ab_consumed_qty",
+        store=True,
+    )
+
+    @api.depends(
+        "move_raw_ids",
+        "move_raw_ids.state",
+        "move_raw_ids.quantity",
+        "move_raw_ids.product_uom_qty",
+    )
+    def _compute_ab_consumed_qty(self):
+        for production in self:
+            raw_moves = production.move_raw_ids.filtered(lambda mv: mv.state != "cancel").sorted(
+                key=lambda mv: ((getattr(mv, "sequence", 0) or 0), mv.id)
+            )
+            consumed_qty = 0.0
+            if raw_moves:
+                first_move = raw_moves[0]
+                for field_name in ("quantity", "quantity_done", "qty_done", "product_uom_qty"):
+                    if field_name in first_move._fields:
+                        consumed_qty = float(getattr(first_move, field_name, 0.0) or 0.0)
+                        break
+            production.ab_consumed_qty = consumed_qty
 
     def _get_master_parameters_for_validation(self):
         self.ensure_one()
